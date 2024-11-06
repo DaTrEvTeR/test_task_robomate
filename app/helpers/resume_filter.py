@@ -1,6 +1,13 @@
 from pydantic import BaseModel, Field
+from typing import Any
 
-from app.helpers.enums import *
+from app.helpers.enums import (
+    CityType,
+    EducationType,
+    ScheduleType,
+    PeriodType,
+    ExperienceType,
+)
 
 
 class ResumeFilter(BaseModel):
@@ -19,7 +26,7 @@ class ResumeFilter(BaseModel):
     photo: bool = Field(default=False)
     keywords: list[str] = Field(default=[""])
 
-    def robota_request(self) -> dict[str, any]:
+    def robota_request(self) -> dict[str, Any]:
         """Returns a dictionary with all the data needed to perform a request to the robota ua API"""
         kw_str = " ".join(kw for kw in self.keywords)
         return {
@@ -41,5 +48,4 @@ class ResumeFilter(BaseModel):
             "keyWords": f"{self.speciality} {kw_str}",
             "searchType": "everywhere",
             "lastSort": "",
-            }
-    
+        }

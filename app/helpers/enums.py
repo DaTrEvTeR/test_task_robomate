@@ -2,10 +2,11 @@ from enum import Enum
 
 
 class CustomEnum(Enum):
-    """A custom Enum class that can be a parent of any Enum class and return 
+    """A custom Enum class that can be a parent of any Enum class and return
     the member name in uppercase format with spaces instead of underscores"""
+
     def __str__(self):
-        return self.name.capitalize().replace('_', ' ')
+        return self.name.capitalize().replace("_", " ")
 
 
 class ScheduleType(CustomEnum):
@@ -103,12 +104,12 @@ class LangNameType(CustomEnum):
 
 class LangLevelType(CustomEnum):
     ELEMENTARY = 1
-    LOWER_INTERMEDIATE = 2  
-    INTERMEDIATE = 3        
-    UPPER_INTERMEDIATE = 6  
-    ADVANCED = 4            
-    FLUENT = 5              
-    NATIVE = 7              
+    LOWER_INTERMEDIATE = 2
+    INTERMEDIATE = 3
+    UPPER_INTERMEDIATE = 6
+    ADVANCED = 4
+    FLUENT = 5
+    NATIVE = 7
 
 
 class CityType(CustomEnum):
@@ -139,8 +140,8 @@ class CityType(CustomEnum):
 
 class EducationType(CustomEnum):
     ANY = 0
-    HIGHER = 1            
-    INCOMPLETE_HIGHER = 2      
-    VOCATIONAL = 3          
-    SECONDARY = 4              
-    MBA = 5                  
+    HIGHER = 1
+    INCOMPLETE_HIGHER = 2
+    VOCATIONAL = 3
+    SECONDARY = 4
+    MBA = 5
