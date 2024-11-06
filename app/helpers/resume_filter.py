@@ -4,10 +4,10 @@ from app.helpers.enums import *
 
 
 class ResumeFilter(BaseModel):
-    position: str
+    speciality: str
     city: int = Field(default=CityType.ALL_UKRAINE.value)
     moveability: bool = Field(default=False)
-    education: int = Field(default=0)
+    education: int = Field(default=EducationType.ANY.value)
     age_from: int = Field(default=0, ge=0, le=100)
     age_to: int = Field(default=0, ge=0, le=100)
     salary_from: int = Field(default=0, ge=0)
@@ -38,7 +38,7 @@ class ResumeFilter(BaseModel):
             "period": self.period,
             "experienceId": self.experience,
             "hasPhoto": self.photo,
-            "keyWords": f"{self.position} {kw_str}",
+            "keyWords": f"{self.speciality} {kw_str}",
             "searchType": "everywhere",
             "lastSort": "",
             }

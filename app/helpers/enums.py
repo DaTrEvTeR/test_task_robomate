@@ -111,7 +111,7 @@ class LangLevelType(CustomEnum):
     NATIVE = 7              
 
 
-class CityType(Enum):
+class CityType(CustomEnum):
     ALL_UKRAINE = 0
     KYIV = 1
     LVIV = 2
@@ -135,3 +135,12 @@ class CityType(Enum):
     CHERNIVTSI = 26
     UZHHOROD = 28
     OTHER_COUNTRIES = 34
+
+
+class EducationType(CustomEnum):
+    ANY = 0
+    HIGHER = 1            
+    INCOMPLETE_HIGHER = 2      
+    VOCATIONAL = 3          
+    SECONDARY = 4              
+    MBA = 5                  
