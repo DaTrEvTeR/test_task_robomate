@@ -8,6 +8,11 @@ class CustomEnum(Enum):
     def __str__(self):
         return self.name.capitalize().replace("_", " ")
 
+    @classmethod
+    def get_by_name(cls, name: str):
+        name_upper = name.upper()
+        return getattr(cls, name_upper, None)
+
 
 class ScheduleType(CustomEnum):
     ANY = 0
@@ -21,7 +26,6 @@ class ScheduleType(CustomEnum):
 
 class PeriodType(CustomEnum):
     TODAY = 1
-    THREE_DAYS = 2
     WEEK = 3
     MONTH = 4
     THREE_MONTH = 7
@@ -146,17 +150,3 @@ class EducationType(CustomEnum):
     VOCATIONAL = 3
     SECONDARY = 4
     MBA = 5
-
-
-# WorkUa enums
-WorkUaSalary = {
-    0: 0,
-    1: 1,
-    10000: 2,
-    15000: 3,
-    20000: 4,
-    30000: 5,
-    40000: 6,
-    50000: 7,
-    100000: 8,
-}

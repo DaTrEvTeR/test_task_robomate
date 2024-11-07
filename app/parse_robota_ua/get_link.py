@@ -6,7 +6,7 @@ def get_robota_link(resume_filter: ResumeFilter) -> str:
     filters_dict = {
         "Sort": 0,
         "SearchType": "everywhere",
-        "Ukrainian": True,
+        "Ukrainian": "true",
         "CityId": resume_filter.city,
         "EducationIds": resume_filter.education if resume_filter.education else "",
         "Age.From": resume_filter.age_from,

@@ -14,7 +14,6 @@ class ResumeFilter(BaseModel):
     # main skills for request
     main_skills: list[str] = Field(default=[""], max_length=3)
     city: int = Field(default=CityType.ALL_UKRAINE.value)
-    moveability: bool = Field(default=False)
     education: int = Field(default=EducationType.ANY.value)
     age_from: int = Field(default=0, ge=0, le=100)
     age_to: int = Field(default=0, ge=0, le=100)
