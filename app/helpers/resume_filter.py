@@ -12,6 +12,8 @@ from app.helpers.enums import (
 
 class ResumeFilter(BaseModel):
     speciality: str
+    # main skills for request
+    main_skills: list[str] = Field(default=[""], max_length=3)
     city: int = Field(default=CityType.ALL_UKRAINE.value)
     moveability: bool = Field(default=False)
     education: int = Field(default=EducationType.ANY.value)
@@ -24,11 +26,12 @@ class ResumeFilter(BaseModel):
     period: int = Field(default=PeriodType.YEAR.value)
     experience: int = Field(default=ExperienceType.ANY.value)
     photo: bool = Field(default=False)
+    # keywords for gaining scores
     keywords: list[str] = Field(default=[""])
 
     def robota_request(self) -> dict[str, Any]:
         """Returns a dictionary with all the data needed to perform a request to the robota ua API"""
-        kw_str = " ".join(kw for kw in self.keywords)
+        main_skills = " ".join(kw for kw in self.main_skills)
         return {
             "sort": "0",
             "page": 0,
@@ -45,7 +48,7 @@ class ResumeFilter(BaseModel):
             "period": self.period,
             "experienceId": self.experience,
             "hasPhoto": self.photo,
-            "keyWords": f"{self.speciality} {kw_str}",
+            "keyWords": f"{self.speciality} {main_skills}",
             "searchType": "everywhere",
             "lastSort": "",
         }
