@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Any
 
 from app.helpers.enums import (
     CityType,
@@ -28,27 +27,3 @@ class ResumeFilter(BaseModel):
     photo: bool = Field(default=False)
     # keywords for gaining scores
     keywords: list[str] = Field(default=[""])
-
-    def robota_request(self) -> dict[str, Any]:
-        """Returns a dictionary with all the data needed to perform a request to the robota ua API"""
-        main_skills = " ".join(kw for kw in self.main_skills)
-        return {
-            "sort": "0",
-            "page": 0,
-            "ukrainian": True,
-            "cityId": self.city,
-            "moveability": self.moveability,
-            "educationId": self.education,
-            "ageFrom": self.age_from,
-            "ageTo": self.age_to,
-            "salaryFrom": self.salary_from,
-            "salaryTo": self.salary_to,
-            "scheduleId": self.schedule,
-            "languages": self.languages,
-            "period": self.period,
-            "experienceId": self.experience,
-            "hasPhoto": self.photo,
-            "keyWords": f"{self.speciality} {main_skills}",
-            "searchType": "everywhere",
-            "lastSort": "",
-        }

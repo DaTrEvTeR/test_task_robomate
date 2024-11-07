@@ -7,8 +7,6 @@ env_file = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
-    RESUMES_URL: str = "https://employer-api.robota.ua/resume/search"
-    ONE_RESUME_URL: str = "https://employer-api.robota.ua/resume/"
     processes_count: int = 4
     process_max_connections: int = 2
 

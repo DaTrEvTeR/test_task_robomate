@@ -30,12 +30,13 @@ class PeriodType(CustomEnum):
 
 
 class ExperienceType(CustomEnum):
-    ANY = 0
-    NO_EXPERIENCE = 4
-    UP_TO_1_YEAR = 5
-    FROM_1_TO_2 = 1
-    FROM_2_TO_5 = 2
-    MORE_THAN_5 = 3
+    ANY = 6
+    NO_EXPERIENCE = 0
+    UP_TO_1_YEAR = 1
+    FROM_1_TO_2 = 2
+    FROM_2_TO_5 = 3
+    FROM_5_TO_10 = 4
+    MORE_THAN_10 = 5
 
 
 class LangNameType(CustomEnum):
@@ -135,7 +136,7 @@ class CityType(CustomEnum):
     CHERNIHIV = 25
     CHERNIVTSI = 26
     UZHHOROD = 28
-    OTHER_COUNTRIES = 34
+    OTHER = 34
 
 
 class EducationType(CustomEnum):
@@ -145,3 +146,17 @@ class EducationType(CustomEnum):
     VOCATIONAL = 3
     SECONDARY = 4
     MBA = 5
+
+
+# WorkUa enums
+WorkUaSalary = {
+    0: 0,
+    1: 1,
+    10000: 2,
+    15000: 3,
+    20000: 4,
+    30000: 5,
+    40000: 6,
+    50000: 7,
+    100000: 8,
+}

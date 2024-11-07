@@ -7,19 +7,20 @@ from typing import Any
 
 from app.helpers.custom_session import CustomSession
 from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
 from app.settings import Settings
+from app.parse_robota_ua.robota_resume_model import RobotaResumeModel
+from app.parse_robota_ua.get_link import get_robota_link
 
 
 class RobotaUaParser:
     def __init__(
         self, filter_obj: ResumeFilter, settings: Settings, session: CustomSession
     ):
-        self.filter_obj = filter_obj
+        self.url = get_robota_link(filter_obj)
         self.settings = settings
         self.session = session
 
-    async def get_resumes_page(self, request_data) -> dict[str, Any]:
+    async def get_resumes_page(self, request_link) -> dict[str, Any]:
         """Retrieve a page of resumes from the employer API.
 
         Parameters
@@ -33,9 +34,7 @@ class RobotaUaParser:
         dict
             The JSON response from the API containing the resumes and related data.
         """
-        async with self.session.post(
-            self.settings.RESUMES_URL, json=request_data
-        ) as response:
+        async with self.session.get(request_link) as response:
             if not response.ok:
                 raise ClientError(
                     f"get_resumes_page: {response.status}: {response.reason}"
@@ -43,7 +42,7 @@ class RobotaUaParser:
             res = await response.json()
         return res
 
-    async def get_page_count(self, request_data) -> int:
+    async def get_page_count(self, request_link) -> int:
         """Retrieve a page count.
 
         Parameters
@@ -57,9 +56,7 @@ class RobotaUaParser:
         int
             Number of resume pages found using special filters.
         """
-        async with self.session.post(
-            self.settings.RESUMES_URL, json=request_data
-        ) as response:
+        async with self.session.get(request_link) as response:
             if not response.ok:
                 raise ClientError(
                     f"get_page_count: {response.status}: {response.reason}"
@@ -77,21 +74,20 @@ class RobotaUaParser:
         else:
             raise ValueError("get_page_count: Resumes not found")
 
-    async def run_parser(self) -> list[ResumeModel] | None:
-        req_data = self.filter_obj.robota_request()
-        logging.info(f"Sending request {req_data} to robota.ua api...")
+    async def run_parser(self) -> list[RobotaResumeModel] | None:
         try:
-            page_count = await self.get_page_count(req_data)
+            logging.info(f"Sending request {self.url} to robota.ua api...")
+            page_count = await self.get_page_count(self.url)
             results = []
             for page_num in range(page_count):
                 logging.info(f"Parsing {page_num+1} page...")
-                req_data["page"] = page_num
-                resumes_page = await self.get_resumes_page(req_data)
+                url = f"{self.url}&page={str(page_num)}"
+                resumes_page = await self.get_resumes_page(url)
                 resumes_links = []
 
                 for document in resumes_page["documents"]:
                     resumes_links.append(
-                        f"{self.settings.ONE_RESUME_URL}{document['resumeId']}"
+                        f"https://employer-api.robota.ua/resume/{document['resumeId']}"
                     )
 
                 results.append(
@@ -107,7 +103,9 @@ class RobotaUaParser:
             logging.error(e)
             return None
 
-    def get_resumes_data_from_urls(self, resumes_urls: list[str]) -> list[ResumeModel]:
+    def get_resumes_data_from_urls(
+        self, resumes_urls: list[str]
+    ) -> list[RobotaResumeModel]:
         """Retrieve product data from a list of URLs using multiple processes.
 
         Parameters
@@ -156,13 +154,13 @@ class RobotaUaParser:
         )
 
 
-def process_wrapper(args) -> list[ResumeModel]:
+def process_wrapper(args) -> list[RobotaResumeModel]:
     """Wrapper to run asyncio tasks within a process."""
     urls, settings = args
     return asyncio.run(process_urls(urls, settings))
 
 
-async def process_urls(urls: list[str], settings: Settings) -> list[ResumeModel]:
+async def process_urls(urls: list[str], settings: Settings) -> list[RobotaResumeModel]:
     """Asynchronously fetch and parse resumes in a given set of URLs."""
     async with CustomSession() as session:
         tasks = [fetch_and_parse(url, session, settings) for url in urls]
@@ -171,7 +169,7 @@ async def process_urls(urls: list[str], settings: Settings) -> list[ResumeModel]
 
 async def fetch_and_parse(
     url: str, session: CustomSession, settings: Settings
-) -> ResumeModel:
+) -> RobotaResumeModel:
     """Fetch json with resume data and parse it"""
     async with asyncio.Semaphore(settings.process_max_connections):
         async with session.get(url) as response:
@@ -180,8 +178,8 @@ async def fetch_and_parse(
                     f"fetch_and_parse: {response.status}: {response.reason}"
                 )
             res = await response.json()
-    model = ResumeModel(**res)
-    if isinstance(model, ResumeModel):
+    model = RobotaResumeModel(**res)
+    if isinstance(model, RobotaResumeModel):
         logging.info(f"Parse {url}")
     else:
         raise ValueError(f"Resume {url} didn`t parse: {model}")
