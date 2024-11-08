@@ -8,6 +8,11 @@ class CustomEnum(Enum):
     def __str__(self):
         return self.name.capitalize().replace("_", " ")
 
+    @classmethod
+    def get_by_name(cls, name: str):
+        name_upper = name.upper()
+        return getattr(cls, name_upper, None)
+
 
 class ScheduleType(CustomEnum):
     ANY = 0
@@ -21,7 +26,6 @@ class ScheduleType(CustomEnum):
 
 class PeriodType(CustomEnum):
     TODAY = 1
-    THREE_DAYS = 2
     WEEK = 3
     MONTH = 4
     THREE_MONTH = 7
@@ -30,12 +34,13 @@ class PeriodType(CustomEnum):
 
 
 class ExperienceType(CustomEnum):
-    ANY = 0
-    NO_EXPERIENCE = 4
-    UP_TO_1_YEAR = 5
-    FROM_1_TO_2 = 1
-    FROM_2_TO_5 = 2
-    MORE_THAN_5 = 3
+    ANY = 6
+    NO_EXPERIENCE = 0
+    UP_TO_1_YEAR = 1
+    FROM_1_TO_2 = 2
+    FROM_2_TO_5 = 3
+    FROM_5_TO_10 = 4
+    MORE_THAN_10 = 5
 
 
 class LangNameType(CustomEnum):
@@ -135,7 +140,7 @@ class CityType(CustomEnum):
     CHERNIHIV = 25
     CHERNIVTSI = 26
     UZHHOROD = 28
-    OTHER_COUNTRIES = 34
+    OTHER = 34
 
 
 class EducationType(CustomEnum):
