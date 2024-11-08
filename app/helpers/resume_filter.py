@@ -12,7 +12,7 @@ from app.helpers.enums import (
 class ResumeFilter(BaseModel):
     speciality: str
     # main skills for request
-    main_skills: list[str] = Field(default=[""], max_length=3)
+    main_skills: list[str] = Field(default=[], max_length=3)
     city: int = Field(default=CityType.ALL_UKRAINE.value)
     education: int = Field(default=EducationType.ANY.value)
     age_from: int = Field(default=0, ge=0, le=100)
@@ -25,4 +25,4 @@ class ResumeFilter(BaseModel):
     experience: int = Field(default=ExperienceType.ANY.value)
     photo: bool = Field(default=False)
     # keywords for gaining scores
-    keywords: list[str] = Field(default=[""])
+    keywords: list[str] = Field(default=[])
