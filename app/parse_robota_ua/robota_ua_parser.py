@@ -1,39 +1,58 @@
 import logging
+import asyncio
 
 from aiohttp import ClientError
-import asyncio
 from multiprocessing import Pool
-from typing import Any
+from typing import Optional, List
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 from app.helpers.custom_session import CustomSession
 from app.helpers.resume_filter import ResumeFilter
-from app.settings import Settings
-from app.parse_robota_ua.robota_resume_model import RobotaResumeModel
-from app.parse_robota_ua.get_link import get_robota_link
+from app.helpers.resume_python_object import ResumeModel
+from app.abc.parser import BaseParser
+from app.abc.page_parser import BasePageParser
+from app.helpers.enums import CityType, ScheduleType, LangLevelType, LangNameType
 
 
-class RobotaUaParser:
-    def __init__(
-        self, filter_obj: ResumeFilter, settings: Settings, session: CustomSession
-    ):
-        self.url = get_robota_link(filter_obj)
-        self.settings = settings
-        self.session = session
+class RobotaUaParser(BaseParser):
+    PER_PAGE = 20
+    RESUME_URL = "https://employer-api.robota.ua/resume/"
+    ALL_RESUMES_URL = "https://employer-api.robota.ua/cvdb/resumes?"
 
-    async def get_resumes_page(self, request_link) -> dict[str, Any]:
-        """Retrieve a page of resumes from the employer API.
+    def get_link(self, resume_filter: ResumeFilter) -> str:
+        """Returns a string with all the data needed to perform a request to the robota ua API"""
+        filters = self.build_filter_query(resume_filter)
+        return f"{self.ALL_RESUMES_URL}{filters}"
 
-        Parameters
-        ----------
-        request_data : dict
-            A dictionary containing the request parameters for fetching resumes,
-            structured according to the API specifications.
+    def build_filter_query(self, resume_filter: ResumeFilter):
+        filters_dict = {
+            "Sort": 0,
+            "SearchType": "everywhere",
+            "Ukrainian": "true",
+            "CityId": resume_filter.city,
+            "EducationIds": resume_filter.education if resume_filter.education else "",
+            "Age.From": resume_filter.age_from,
+            "Age.To": resume_filter.age_to,
+            "ScheduleIds": resume_filter.schedule if resume_filter.education else "",
+            "Period": resume_filter.period,
+            "ExperienceIds": resume_filter.experience
+            if resume_filter.education
+            else "",
+            "KeyWords": f"{'%20'.join(resume_filter.speciality.split(" "))}%20{("%20".join(resume_filter.main_skills))}",
+            "Languages": "&".join(
+                [f"Languages={k}-{v}" for k, v in resume_filter.languages.items()]
+            ),
+            "HasPhoto": resume_filter.photo,
+        }
+        if resume_filter.salary_from:
+            filters_dict["Salary.From"] = resume_filter.salary_from
+        if resume_filter.salary_to:
+            filters_dict["Salary.To"] = resume_filter.salary_to
+        return "&".join(f"{k}={v}" for k, v in filters_dict.items())
 
-        Returns
-        -------
-        dict
-            The JSON response from the API containing the resumes and related data.
-        """
+    async def get_resumes_page(self, request_link: str):
+        """Retrieve a page from the url"""
         async with self.session.get(request_link) as response:
             if not response.ok:
                 raise ClientError(
@@ -42,7 +61,7 @@ class RobotaUaParser:
             res = await response.json()
         return res
 
-    async def get_page_count(self, request_link) -> int:
+    async def get_page_count(self) -> int:
         """Retrieve a page count.
 
         Parameters
@@ -56,12 +75,7 @@ class RobotaUaParser:
         int
             Number of resume pages found using special filters.
         """
-        async with self.session.get(request_link) as response:
-            if not response.ok:
-                raise ClientError(
-                    f"get_page_count: {response.status}: {response.reason}"
-                )
-            res = await response.json()
+        res = await self.get_resumes_page(self.url)
         total = res["total"]
         if total:
             page_count = (total + 19) // 20
@@ -74,38 +88,48 @@ class RobotaUaParser:
         else:
             raise ValueError("get_page_count: Resumes not found")
 
-    async def run_parser(self) -> list[RobotaResumeModel] | None:
+    async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+        """Asynchronously retrieves and parses resumes from the Robota.ua API.
+
+        This method first determines the total number of pages to parse, then iterates over each page
+        to gather resume links and parse the data for each resume link found. Resumes are parsed into
+        `ResumeModel` objects.
+
+        Returns:
+        -------
+        list[ResumeModel] | None
+            A list of `ResumeModel` instances containing parsed resume data, or None if no resumes were found.
+        """
         try:
-            logging.info(f"Sending request {self.url} to robota.ua api...")
-            page_count = await self.get_page_count(self.url)
-            results = []
-            for page_num in range(page_count):
-                logging.info(f"Parsing {page_num+1} page...")
-                url = f"{self.url}&page={str(page_num)}"
-                resumes_page = await self.get_resumes_page(url)
-                resumes_links = []
+            async with CustomSession() as session:
+                self.session = session
+                logging.info(f"Sending request {self.url} to robota.ua api...")
+                page_count = await self.get_page_count()
+                results = []
+                for page_num in range(page_count):
+                    logging.info(f"Parsing {page_num+1} page...")
+                    url = f"{self.url}&page={str(page_num)}"
+                    resumes_page = await self.get_resumes_page(url)
+                    resumes_links = []
 
-                for document in resumes_page["documents"]:
-                    resumes_links.append(
-                        f"https://employer-api.robota.ua/resume/{document['resumeId']}"
+                    for document in resumes_page["documents"]:
+                        resumes_links.append(f"{self.RESUME_URL}{document['resumeId']}")
+
+                    results.append(
+                        self.get_resumes_data_from_urls(resumes_urls=resumes_links)
                     )
-
-                results.append(
-                    self.get_resumes_data_from_urls(resumes_urls=resumes_links)
-                )
             res = []
             for url_group in results:
                 res.extend(url_group)
             logging.info(f"Parsing finished\nParsed {len(res)} resumes")
             return res
-
         except Exception as e:
             logging.error(e)
             return None
 
     def get_resumes_data_from_urls(
         self, resumes_urls: list[str]
-    ) -> list[RobotaResumeModel]:
+    ) -> list[Optional[ResumeModel]]:
         """Retrieve product data from a list of URLs using multiple processes.
 
         Parameters
@@ -154,33 +178,109 @@ class RobotaUaParser:
         )
 
 
-def process_wrapper(args) -> list[RobotaResumeModel]:
+def process_wrapper(args) -> list[Optional[ResumeModel]]:
     """Wrapper to run asyncio tasks within a process."""
     urls, settings = args
-    return asyncio.run(process_urls(urls, settings))
+    page_parser = RobotaUaPageParser(urls=urls, settings=settings)
+    return asyncio.run(page_parser.process_urls())
 
 
-async def process_urls(urls: list[str], settings: Settings) -> list[RobotaResumeModel]:
-    """Asynchronously fetch and parse resumes in a given set of URLs."""
-    async with CustomSession() as session:
-        tasks = [fetch_and_parse(url, session, settings) for url in urls]
-        return await asyncio.gather(*tasks)
+class RobotaUaPageParser(BasePageParser):
+    """A class to fetch, parse, and convert resumes from the Robota.ua platform into structured data models.
 
+    This parser asynchronously retrieves resume data from given URLs, processes each response into
+    a `ResumeModel`, and handles errors gracefully. It uses a configurable session and settings to manage
+    connection limits and timeout values.
 
-async def fetch_and_parse(
-    url: str, session: CustomSession, settings: Settings
-) -> RobotaResumeModel:
-    """Fetch json with resume data and parse it"""
-    async with asyncio.Semaphore(settings.process_max_connections):
-        async with session.get(url) as response:
-            if not response.ok:
-                raise ClientError(
-                    f"fetch_and_parse: {response.status}: {response.reason}"
-                )
-            res = await response.json()
-    model = RobotaResumeModel(**res)
-    if isinstance(model, RobotaResumeModel):
-        logging.info(f"Parse {url}")
-    else:
-        raise ValueError(f"Resume {url} didn`t parse: {model}")
-    return model
+    Attributes:
+    ----------
+    CANDIDATES_URL : str
+        Base URL for accessing candidate profiles on Robota.ua.
+
+    urls : list[str]
+        A list of URLs from which resume data will be fetched.
+
+    settings : Settings
+        Configuration settings, such as maximum connections, to control the request behavior."""
+
+    CANDIDATES_URL = "https://robota.ua/candidates/"
+
+    async def fetch_and_parse(self, url: str) -> Optional[ResumeModel]:
+        """Fetch json with resume data and parse it"""
+        async with asyncio.Semaphore(self.settings.process_max_connections):
+            async with self.session.get(url) as response:
+                if not response.ok:
+                    logging.error(
+                        f"fetch_and_parse: {response.status}: {response.reason}"
+                    )
+                    return None
+                response = await response.json()
+        try:
+            res = self.parse_resume_data(response)
+            model = ResumeModel(**res)
+            logging.info(f"Parsed {url}")
+            return model
+        except Exception as e:
+            logging.error(f"fetch_and_parse - error at parsing {url}: {e}")
+            return None
+
+    def parse_resume_data(self, data: dict) -> dict:
+        """Parses all the data needed to create a ResumeModel from json and returns a dict"""
+        return {
+            "cv_link": f"{self.CANDIDATES_URL}{data["resumeId"]}",
+            "last_name": data.get("surname", ""),
+            "first_name": data.get("name", ""),
+            "father_name": data.get("fatherName", ""),
+            "age": int(data["age"].split(" ")[0] if data["age"] else 0),
+            "speciality": data.get("speciality", ""),
+            "city": str(CityType(data["cityId"])) if data["cityId"] in CityType else "",
+            "schedule": str(ScheduleType(data["scheduleId"])),
+            "salary_expectation": int(data.get("salary", 0)),
+            "currency": data.get("currencySign", "")
+            if int(data.get("salary", 0)) != 0
+            else "",
+            "resume_filling": data.get("fillingPercentage", 0),
+            "skills": ", ".join(
+                [skill.get("description") for skill in data.get("skills", [])]
+            ),
+            "educations": [
+                {
+                    "name": edu.get("name", ""),
+                    "comment": BeautifulSoup(edu["comment"], "html.parser").text,
+                    "location": edu.get("location", ""),
+                    "speciality": edu.get("speciality", ""),
+                    "yearOfGraduation": edu.get("yearOfGraduation", 0),
+                }
+                for edu in data.get("educations", [])
+            ],
+            "experiences": [
+                {
+                    "position": exp.get("position", ""),
+                    "company": exp.get("company", ""),
+                    "description": BeautifulSoup(
+                        exp["description"], "html.parser"
+                    ).text,
+                    "period": round(
+                        (
+                            (
+                                datetime.fromisoformat(exp["endWork"])
+                                if exp["endWork"]
+                                else datetime.now()
+                            )
+                            - datetime.fromisoformat(exp["startWork"])
+                        ).days
+                        / 365.25,
+                        1,
+                    ),
+                }
+                for exp in data.get("experiences", [])
+            ],
+            "languages": [
+                {
+                    str(LangNameType(lang["languageId"])): str(
+                        LangLevelType(lang["languageSkillId"])
+                    )
+                }
+                for lang in data.get("languageSkills", [])
+            ],
+        }

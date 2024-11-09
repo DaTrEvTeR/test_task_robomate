@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Any
 
 
-class BaseResumeModel(BaseModel):
+class ResumeModel(BaseModel):
     cv_link: str
     last_name: str = ""
     first_name: str
