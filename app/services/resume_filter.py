@@ -31,15 +31,5 @@ class ResumeFilter(BaseModel):
     def validate_lang(cls, languages):
         validated_languages = {}
         for lang, level in languages.items():
-            if level == 7:
-                validated_languages[lang] = (7,)
-            elif level != 6:
-                if level < 4:
-                    validated_languages[lang] = tuple(range(level, 8))
-                else:
-                    t = list(range(level, 8))
-                    t.remove(6)
-                    validated_languages[lang] = tuple(t)
-            else:
-                validated_languages[lang] = (6, 4, 5, 7)
+            validated_languages[lang] = tuple(range(level, 8))
         return validated_languages

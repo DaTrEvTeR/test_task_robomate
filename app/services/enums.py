@@ -113,9 +113,9 @@ class LangLevelType(CustomEnum):
     ELEMENTARY = 1
     LOWER_INTERMEDIATE = 2
     INTERMEDIATE = 3
-    UPPER_INTERMEDIATE = 6
-    ADVANCED = 4
-    FLUENT = 5
+    UPPER_INTERMEDIATE = 4
+    ADVANCED = 5
+    FLUENT = 6
     NATIVE = 7
 
 

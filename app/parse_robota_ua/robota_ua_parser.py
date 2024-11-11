@@ -15,6 +15,7 @@ from app.services.resume_python_object import ResumeModel
 from app.services.enums import CityType, ScheduleType, LangLevelType, LangNameType
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
+from app.parse_robota_ua.enums import scoring_lang_level_dict
 
 
 class RobotaUaParser(BaseParser):
@@ -32,7 +33,7 @@ class RobotaUaParser(BaseParser):
         languages = []
         for k, v in resume_filter.languages.items():
             for i in v:
-                languages.append(f"Languages={k}-{i}")
+                languages.append(f"Languages={k}-{scoring_lang_level_dict[i]}")
         filters_dict = {
             "Sort": 0,
             "SearchType": "everywhere",
