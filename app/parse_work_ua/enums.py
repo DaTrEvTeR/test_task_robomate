@@ -1,4 +1,4 @@
-from app.helpers.enums import LangLevelType, LangNameType, ExperienceType
+from app.services.enums import LangLevelType, LangNameType, ExperienceType
 
 work_salary_dict = {
     0: 0,

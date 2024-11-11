@@ -3,8 +3,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from app.helpers.resume_python_object import ResumeModel
-from app.helpers.custom_session import CustomSession
+from app.services.resume_python_object import ResumeModel
+from app.services.custom_session import CustomSession
 from app.settings import Settings
 
 

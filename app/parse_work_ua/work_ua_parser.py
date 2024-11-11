@@ -7,10 +7,10 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 from typing import Optional, List
 
-from app.helpers.custom_session import CustomSession
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
-from app.helpers.enums import (
+from app.services.custom_session import CustomSession
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
+from app.services.enums import (
     CityType,
     LangNameType,
     LangLevelType,

@@ -7,12 +7,12 @@ from typing import Optional, List
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-from app.helpers.custom_session import CustomSession
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
+from app.services.custom_session import CustomSession
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
-from app.helpers.enums import CityType, ScheduleType, LangLevelType, LangNameType
+from app.services.enums import CityType, ScheduleType, LangLevelType, LangNameType
 
 
 class RobotaUaParser(BaseParser):

@@ -3,8 +3,8 @@ import logging
 from typing import Type, Optional
 
 from app.abc.parser import BaseParser
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
 from app.settings import Settings
 
 

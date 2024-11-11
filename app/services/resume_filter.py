@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.helpers.enums import (
+from app.services.enums import (
     CityType,
     EducationType,
     ScheduleType,
