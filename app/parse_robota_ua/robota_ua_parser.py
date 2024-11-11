@@ -47,14 +47,17 @@ class RobotaUaParser(BaseParser):
             if resume_filter.education
             else "",
             "KeyWords": f"{'%20'.join(resume_filter.speciality.split(" "))}%20{("%20".join(resume_filter.main_skills))}",
-            "Languages": "&".join(languages),
             "HasPhoto": resume_filter.photo,
         }
         if resume_filter.salary_from:
             filters_dict["Salary.From"] = resume_filter.salary_from
         if resume_filter.salary_to:
             filters_dict["Salary.To"] = resume_filter.salary_to
-        return "&".join(f"{k}={v}" for k, v in filters_dict.items())
+        return (
+            "&".join(f"{k}={v}" for k, v in filters_dict.items())
+            + "&"
+            + "&".join(languages)
+        )
 
     async def get_resumes_page(self, request_link: str):
         """Retrieve a page from the url"""
