@@ -71,9 +71,15 @@ class WorkUaParser(BaseParser):
         experience = work_exp_dict[resume_filter.experience]
         languages = dict()
         for lang, lev in resume_filter.languages.items():
+            lang_lev = list()
+            for i in lev:
+                lang_lev.append(work_lang_level_dict[LangLevelType(i).value])
             lang_name = work_lang_dict[LangNameType(lang).value]
-            lang_lev = work_lang_level_dict[LangLevelType(lev).value]
             languages[lang_name] = lang_lev
+        languages_levels = []
+        for k, v in languages.items():
+            for i in v:
+                languages_levels.append(f"{k}-{i}")
         filters_dict = {
             "notitle": "1",
             "sort": "1",
@@ -82,18 +88,14 @@ class WorkUaParser(BaseParser):
             "agefrom": resume_filter.age_from,
             "ageto": resume_filter.age_to,
             "salaryfrom": salary_from,
-            "salaryto": salary_to if salary_to else 0,
+            "salaryto": salary_to if salary_to else "0",
             "education": resume_filter.education + 65,
             "experience": experience,
             "language": "+".join(str(k) for k in languages.keys()),
-            "language_level": "+".join(
-                [f"{lang}-{lev}" for lang, lev in languages.items()]
-            ),
+            "language_level": "+".join(languages_levels),
             "photo": int(resume_filter.photo),
         }
-        filters_list = list()
-        for k, v in filters_dict.items():
-            filters_list.append(f"{k}={v}")
+        filters_list = [f"{k}={v}" for k, v in filters_dict.items()]
         filters = "&".join(filters_list)
         return location, speciality, filters
 
@@ -403,7 +405,7 @@ class WorkUaPageParser(BasePageParser):
             )
         resume_filling += 20 if experiences else 0
 
-        languages = []
+        languages = dict()
         if langs := soup.find("h2", string="Знання мов"):
             if (
                 langs.find_next_sibling("ul")
@@ -412,14 +414,10 @@ class WorkUaPageParser(BasePageParser):
                 langs = langs.find_next_sibling("ul").select("li")
                 for lang in langs:
                     t = lang.text.split(" — ")
-                    languages.append(
-                        {work_str_lang_dict[t[0]]: work_str_lang_level_dict[t[1]]}
-                    )
+                    languages[work_str_lang_dict[t[0]]] = work_str_lang_level_dict[t[1]]
             else:
                 t = langs.find_next_sibling("p").text.split(" — ")
-                languages.append(
-                    {work_str_lang_dict[t[0]]: work_str_lang_level_dict[t[1]]}
-                )
+                languages[work_str_lang_dict[t[0]]] = work_str_lang_level_dict[t[1]]
         resume_filling += 20 if languages else 0
 
         return {

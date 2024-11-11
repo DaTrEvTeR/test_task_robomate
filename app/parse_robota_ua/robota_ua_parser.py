@@ -29,6 +29,10 @@ class RobotaUaParser(BaseParser):
         return f"{self.ALL_RESUMES_URL}{filters}"
 
     def build_filter_query(self, resume_filter: ResumeFilter):
+        languages = []
+        for k, v in resume_filter.languages.items():
+            for i in v:
+                languages.append(f"Languages={k}-{i}")
         filters_dict = {
             "Sort": 0,
             "SearchType": "everywhere",
@@ -43,9 +47,7 @@ class RobotaUaParser(BaseParser):
             if resume_filter.education
             else "",
             "KeyWords": f"{'%20'.join(resume_filter.speciality.split(" "))}%20{("%20".join(resume_filter.main_skills))}",
-            "Languages": "&".join(
-                [f"Languages={k}-{v}" for k, v in resume_filter.languages.items()]
-            ),
+            "Languages": "&".join(languages),
             "HasPhoto": resume_filter.photo,
         }
         if resume_filter.salary_from:
@@ -297,13 +299,11 @@ class RobotaUaPageParser(BasePageParser):
                 )
                 for exp in data.get("experiences", [])
             ],
-            "languages": [
-                {
-                    LangNameType(lang["languageId"]).value: LangLevelType(
-                        lang["languageSkillId"]
-                    ).value
-                }
+            "languages": {
+                LangNameType(lang["languageId"]).value: LangLevelType(
+                    lang["languageSkillId"]
+                ).value
                 for lang in data.get("languageSkills", [])
-            ],
+            },
             "education": education,
         }

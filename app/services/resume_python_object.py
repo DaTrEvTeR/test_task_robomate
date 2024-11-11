@@ -20,5 +20,5 @@ class ResumeModel(BaseModel):
     skills: str = ""
     educations: list[Education] = list()
     experiences: list[Experience] = list()
-    languages: list[dict[int, int]] = list()
+    languages: dict[int, int] = dict()
     education: int = EducationType.ANY.value
