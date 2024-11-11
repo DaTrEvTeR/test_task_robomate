@@ -49,6 +49,8 @@ class LangNameType(CustomEnum):
     FRENCH = 3
     SPANISH = 4
     ITALIAN = 5
+    IRISH = 17
+    LATIN = 23
     AZERBAIJANI = 101
     ALBANIAN = 102
     ARABIC = 103

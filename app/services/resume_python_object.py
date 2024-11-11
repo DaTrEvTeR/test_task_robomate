@@ -1,5 +1,8 @@
 from pydantic import BaseModel
-from typing import Any
+
+from app.services.education import Education
+from app.services.experience import Experience
+from app.services.enums import LangNameType, LangLevelType
 
 
 class ResumeModel(BaseModel):
@@ -15,6 +18,6 @@ class ResumeModel(BaseModel):
     currency: str = ""
     resume_filling: int
     skills: str = ""
-    educations: list[dict[str, Any]] = list()
-    experiences: list[dict[str, Any]] = list()
-    languages: list[dict[str, str]] = list()
+    educations: list[Education] = list()
+    experiences: list[Experience] = list()
+    languages: list[dict[LangNameType, LangLevelType]] = list()

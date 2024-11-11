@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from typing import Optional, List
 
 from app.services.custom_session import CustomSession
+from app.services.experience import Experience
+from app.services.education import Education
 from app.services.resume_filter import ResumeFilter
 from app.services.resume_python_object import ResumeModel
 from app.services.enums import (
@@ -20,6 +22,8 @@ from app.parse_work_ua.enums import (
     work_exp_dict,
     work_lang_dict,
     work_lang_level_dict,
+    work_str_lang_dict,
+    work_str_lang_level_dict,
 )
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
@@ -324,12 +328,12 @@ class WorkUaPageParser(BasePageParser):
                 desc_split[-1].split(" ")[2] if len(desc_split) != 1 else 0
             )
             educations.append(
-                {
-                    "name": name,
-                    "comment": comment,
-                    "speciality": spec.strip(),
-                    "yearOfGraduation": int(year_of_graduation),
-                }
+                Education(
+                    name=name.strip(),
+                    comment=comment.strip(),
+                    speciality=spec.strip(),
+                    year_of_graduation=int(year_of_graduation),
+                )
             )
         resume_filling += 20 if educations else 0
 
@@ -363,12 +367,12 @@ class WorkUaPageParser(BasePageParser):
                 period = round(int(period_str[0]), 1)
             company = ex[1].text.split("\n")[-1].strip()
             experiences.append(
-                {
-                    "position": position,
-                    "company": company,
-                    "description": description,
-                    "period": period,
-                }
+                Experience(
+                    position=position,
+                    company=company,
+                    description=description,
+                    period=period,
+                )
             )
         resume_filling += 20 if experiences else 0
 
@@ -384,7 +388,9 @@ class WorkUaPageParser(BasePageParser):
                     languages.append({t[0]: t[1]})
             else:
                 t = langs.find_next_sibling("p").text.split(" — ")
-                languages.append({t[0]: t[1]})
+                languages.append(
+                    {work_str_lang_dict[t[0]]: work_str_lang_level_dict[t[1]]}
+                )
         resume_filling += 20 if languages else 0
 
         return {

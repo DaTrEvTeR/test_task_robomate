@@ -8,11 +8,13 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 from app.services.custom_session import CustomSession
+from app.services.experience import Experience
+from app.services.education import Education
 from app.services.resume_filter import ResumeFilter
 from app.services.resume_python_object import ResumeModel
+from app.services.enums import CityType, ScheduleType, LangLevelType, LangNameType
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
-from app.services.enums import CityType, ScheduleType, LangLevelType, LangNameType
 
 
 class RobotaUaParser(BaseParser):
@@ -244,23 +246,21 @@ class RobotaUaPageParser(BasePageParser):
                 [skill.get("description") for skill in data.get("skills", [])]
             ),
             "educations": [
-                {
-                    "name": edu.get("name", ""),
-                    "comment": BeautifulSoup(edu["comment"], "html.parser").text,
-                    "location": edu.get("location", ""),
-                    "speciality": edu.get("speciality", ""),
-                    "yearOfGraduation": edu.get("yearOfGraduation", 0),
-                }
+                Education(
+                    name=edu.get("name", ""),
+                    comment=BeautifulSoup(edu["comment"], "html.parser").text,
+                    location=edu.get("location", ""),
+                    speciality=edu.get("speciality", ""),
+                    year_of_graduation=edu.get("yearOfGraduation", 0),
+                )
                 for edu in data.get("educations", [])
             ],
             "experiences": [
-                {
-                    "position": exp.get("position", ""),
-                    "company": exp.get("company", ""),
-                    "description": BeautifulSoup(
-                        exp["description"], "html.parser"
-                    ).text,
-                    "period": round(
+                Experience(
+                    position=exp.get("position", ""),
+                    company=exp.get("company", ""),
+                    description=BeautifulSoup(exp["description"], "html.parser").text,
+                    period=round(
                         (
                             (
                                 datetime.fromisoformat(exp["endWork"])
@@ -272,14 +272,14 @@ class RobotaUaPageParser(BasePageParser):
                         / 365.25,
                         1,
                     ),
-                }
+                )
                 for exp in data.get("experiences", [])
             ],
             "languages": [
                 {
-                    str(LangNameType(lang["languageId"])): str(
-                        LangLevelType(lang["languageSkillId"])
-                    )
+                    LangNameType(lang["languageId"]).value: LangLevelType(
+                        lang["languageSkillId"]
+                    ).value
                 }
                 for lang in data.get("languageSkills", [])
             ],
