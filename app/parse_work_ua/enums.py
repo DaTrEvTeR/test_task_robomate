@@ -1,4 +1,9 @@
-from app.services.enums import LangLevelType, LangNameType, ExperienceType
+from app.services.enums import (
+    LangLevelType,
+    LangNameType,
+    ExperienceType,
+    EducationType,
+)
 
 work_salary_dict = {
     0: 0,
@@ -97,4 +102,11 @@ work_str_lang_level_dict = {
     "вище середнього": LangLevelType.UPPER_INTERMEDIATE.value,
     "просунутий": LangLevelType.ADVANCED.value,
     "вільно": LangLevelType.FLUENT.value,
+}
+
+work_str_education_dict = {
+    "Вища": EducationType.HIGHER.value,
+    "Незакінчена вища": EducationType.INCOMPLETE_HIGHER.value,
+    "Середня спеціальна": EducationType.VOCATIONAL.value,
+    "Середня": EducationType.SECONDARY.value,
 }

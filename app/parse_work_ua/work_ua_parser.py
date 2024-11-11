@@ -24,6 +24,7 @@ from app.parse_work_ua.enums import (
     work_lang_level_dict,
     work_str_lang_dict,
     work_str_lang_level_dict,
+    work_str_education_dict,
 )
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
@@ -319,22 +320,27 @@ class WorkUaPageParser(BasePageParser):
                 siblings[list_ind].append(sibling)
 
         educations = []
-        for ex in siblings:
-            name = ex[0].text
-            comment = ex[2].text if len(ex) == 3 else ""
-            desc_split = ex[1].text.strip().split(", з ")
-            spec = desc_split[0]
-            year_of_graduation = (
-                desc_split[-1].split(" ")[2] if len(desc_split) != 1 else 0
-            )
+        education = 5
+        for ed in siblings:
+            name = ed[0].text
+            comment = ed[2].text if len(ed) == 3 else ""
+            desc_split = ed[1].get_text(" ", strip=True)
+            spec = desc_split.split(",")[0].strip()
+            ed_str = desc_split.split(",")[1].split("з")[0].strip()
+            year_of_graduation = desc_split.split("по")[-1].strip()
             educations.append(
                 Education(
-                    name=name.strip(),
-                    comment=comment.strip(),
-                    speciality=spec.strip(),
+                    name=name,
+                    comment=comment,
+                    speciality=spec,
                     year_of_graduation=int(year_of_graduation),
                 )
             )
+            ed_id = work_str_education_dict[ed_str]
+            if ed_id != 0 and ed_id < education:
+                education = ed_id
+        if education == 5:
+            education = 0
         resume_filling += 20 if educations else 0
 
         ex_siblings: list = []
@@ -409,4 +415,5 @@ class WorkUaPageParser(BasePageParser):
             "educations": educations,
             "experiences": experiences,
             "languages": languages,
+            "education": education,
         }

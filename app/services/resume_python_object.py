@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from app.services.education import Education
 from app.services.experience import Experience
-from app.services.enums import LangNameType, LangLevelType
+from app.services.enums import LangNameType, LangLevelType, EducationType
 
 
 class ResumeModel(BaseModel):
@@ -21,3 +21,4 @@ class ResumeModel(BaseModel):
     educations: list[Education] = list()
     experiences: list[Experience] = list()
     languages: list[dict[LangNameType, LangLevelType]] = list()
+    education: int = EducationType.ANY.value

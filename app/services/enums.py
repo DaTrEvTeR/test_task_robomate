@@ -151,4 +151,3 @@ class EducationType(CustomEnum):
     INCOMPLETE_HIGHER = 2
     VOCATIONAL = 3
     SECONDARY = 4
-    MBA = 5

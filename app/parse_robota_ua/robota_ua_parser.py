@@ -228,6 +228,23 @@ class RobotaUaPageParser(BasePageParser):
 
     def parse_resume_data(self, data: dict) -> dict:
         """Parses all the data needed to create a ResumeModel from json and returns a dict"""
+        educations = list()
+        education = 5
+        for edu in data.get("educations", []):
+            educations.append(
+                Education(
+                    name=edu.get("name", ""),
+                    comment=BeautifulSoup(edu["comment"], "html.parser").text,
+                    location=edu.get("location", ""),
+                    speciality=edu.get("speciality", ""),
+                    year_of_graduation=edu.get("yearOfGraduation", 0),
+                )
+            )
+            ed_id = edu["educationId"]
+            if ed_id != 0 and ed_id < education:
+                education = ed_id
+        if education == 5:
+            education = 0
         return {
             "cv_link": f"{self.CANDIDATES_URL}{data["resumeId"]}",
             "last_name": data.get("surname", ""),
@@ -283,4 +300,5 @@ class RobotaUaPageParser(BasePageParser):
                 }
                 for lang in data.get("languageSkills", [])
             ],
+            "education": education,
         }
