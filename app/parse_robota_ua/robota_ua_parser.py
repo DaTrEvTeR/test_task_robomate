@@ -19,6 +19,7 @@ from app.abc.page_parser import BasePageParser
 
 class RobotaUaParser(BaseParser):
     PER_PAGE = 20
+    LIMIT_PAGES = 5
     RESUME_URL = "https://employer-api.robota.ua/resume/"
     ALL_RESUMES_URL = "https://employer-api.robota.ua/cvdb/resumes?"
 
@@ -80,7 +81,7 @@ class RobotaUaParser(BaseParser):
         res = await self.get_resumes_page(self.url)
         total = res["total"]
         if total:
-            page_count = (total + 19) // 20
+            page_count = (total + self.PER_PAGE - 1) // self.PER_PAGE
             if page_count:
                 logging.info(f"Found {total} resumes|{page_count} pages")
                 return page_count
@@ -108,7 +109,9 @@ class RobotaUaParser(BaseParser):
                 logging.info(f"Sending request {self.url} to robota.ua api...")
                 page_count = await self.get_page_count()
                 results = []
-                for page_num in range(page_count):
+                for page_num in range(
+                    page_count if page_count <= self.LIMIT_PAGES else self.LIMIT_PAGES
+                ):
                     logging.info(f"Parsing {page_num+1} page...")
                     url = f"{self.url}&page={str(page_num)}"
                     resumes_page = await self.get_resumes_page(url)
@@ -252,7 +255,9 @@ class RobotaUaPageParser(BasePageParser):
             "father_name": data.get("fatherName", ""),
             "age": int(data["age"].split(" ")[0] if data["age"] else 0),
             "speciality": data.get("speciality", ""),
-            "city": str(CityType(data["cityId"])) if data["cityId"] in CityType else "",
+            "city": CityType(data["cityId"]).value
+            if data["cityId"] in CityType
+            else CityType.ALL_UKRAINE.value,
             "schedule": str(ScheduleType(data["scheduleId"])),
             "salary_expectation": int(data.get("salary", 0)),
             "currency": data.get("currencySign", "")

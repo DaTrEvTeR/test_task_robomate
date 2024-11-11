@@ -25,6 +25,7 @@ from app.parse_work_ua.enums import (
     work_str_lang_dict,
     work_str_lang_level_dict,
     work_str_education_dict,
+    work_str_city_dict,
 )
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
@@ -34,6 +35,7 @@ class WorkUaParser(BaseParser):
     PER_PAGE = 14
     BASE_URL = "https://www.work.ua"
     RESUMES_URL = "https://www.work.ua/resumes"
+    LIMIT_PAGES = 8
 
     def get_link(self, resume_filter: ResumeFilter) -> str:
         """Returns a formatted string for request to work ua"""
@@ -80,7 +82,7 @@ class WorkUaParser(BaseParser):
             "agefrom": resume_filter.age_from,
             "ageto": resume_filter.age_to,
             "salaryfrom": salary_from,
-            "salaryto": salary_to,
+            "salaryto": salary_to if salary_to else 0,
             "education": resume_filter.education + 65,
             "experience": experience,
             "language": "+".join(str(k) for k in languages.keys()),
@@ -146,7 +148,12 @@ class WorkUaParser(BaseParser):
                 logging.info(f"Sending request {self.url} to work.ua...")
                 page_count = await self.get_page_count()
                 results = []
-                for page_num in range(1, page_count + 1):
+                for page_num in range(
+                    1,
+                    page_count + 1
+                    if page_count <= self.LIMIT_PAGES
+                    else self.LIMIT_PAGES + 1,
+                ):
                     logging.info(f"Parsing {page_num} page...")
                     page_url = f"{self.url}&page={str(page_num)}"
                     resumes_page = await self.get_resumes_page(page_url)
@@ -276,7 +283,14 @@ class WorkUaPageParser(BasePageParser):
         )
 
         city_title = soup.find("dt", string=re.compile(r"Місто(:| проживання:)"))
-        city = city_title.find_next_sibling("dd").text.strip() if city_title else None
+        if city_title:
+            city = city_title.find_next_sibling("dd").text.strip()
+            if city not in CityType:
+                city = CityType.ALL_UKRAINE.value
+            else:
+                city = work_str_city_dict[city]
+        else:
+            city = CityType.ALL_UKRAINE.value
 
         schedule_title = soup.find("dt", string="Зайнятість:")
         schedule = (
@@ -318,16 +332,23 @@ class WorkUaPageParser(BasePageParser):
                     siblings.append([])
                     list_ind += 1
                 siblings[list_ind].append(sibling)
-
         educations = []
         education = 5
         for ed in siblings:
             name = ed[0].text
             comment = ed[2].text if len(ed) == 3 else ""
             desc_split = ed[1].get_text(" ", strip=True)
-            spec = desc_split.split(",")[0].strip()
-            ed_str = desc_split.split(",")[1].split("з")[0].strip()
-            year_of_graduation = desc_split.split("по")[-1].strip()
+            if " " in desc_split:
+                spec = desc_split.split(", з ")[0]
+                if spec:
+                    last_index = max(spec.rfind("В"), spec.rfind("Н"), spec.rfind("С"))
+                    ed_str = spec[last_index:]
+                    spec = spec[:last_index].strip()
+                year_of_graduation = desc_split.split("по ")[-1][:4]
+            else:
+                spec = ""
+                year_of_graduation = 0
+                ed_str = desc_split
             educations.append(
                 Education(
                     name=name,
@@ -391,7 +412,9 @@ class WorkUaPageParser(BasePageParser):
                 langs = langs.find_next_sibling("ul").select("li")
                 for lang in langs:
                     t = lang.text.split(" — ")
-                    languages.append({t[0]: t[1]})
+                    languages.append(
+                        {work_str_lang_dict[t[0]]: work_str_lang_level_dict[t[1]]}
+                    )
             else:
                 t = langs.find_next_sibling("p").text.split(" — ")
                 languages.append(

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from app.services.education import Education
 from app.services.experience import Experience
-from app.services.enums import LangNameType, LangLevelType, EducationType
+from app.services.enums import EducationType, CityType
 
 
 class ResumeModel(BaseModel):
@@ -12,7 +12,7 @@ class ResumeModel(BaseModel):
     father_name: str = ""
     age: int = 0
     speciality: str
-    city: str = ""
+    city: int = CityType.ALL_UKRAINE.value
     schedule: str = ""
     salary_expectation: int = 0
     currency: str = ""
@@ -20,5 +20,5 @@ class ResumeModel(BaseModel):
     skills: str = ""
     educations: list[Education] = list()
     experiences: list[Experience] = list()
-    languages: list[dict[LangNameType, LangLevelType]] = list()
+    languages: list[dict[int, int]] = list()
     education: int = EducationType.ANY.value
