@@ -7,16 +7,36 @@ from typing import Optional, List
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-from app.helpers.custom_session import CustomSession
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
+from app.services.custom_session import CustomSession
+from app.services.experience import Experience
+from app.services.education import Education
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
+from app.services.enums import CityType, ScheduleType, LangLevelType, LangNameType
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
-from app.helpers.enums import CityType, ScheduleType, LangLevelType, LangNameType
+from app.parse_robota_ua.enums import scoring_lang_level_dict
 
 
 class RobotaUaParser(BaseParser):
+    """A parser for retrieving and processing resume data from the robota.ua website.
+
+    This class uses specified filters and constructs request URLs to fetch resumes,
+    process pages, and extract relevant resume data for further processing.
+
+    Attributes:
+    ----------
+    PER_PAGE : int
+        The number of resumes displayed per page on Work.ua.
+    ALL_RESUMES_URL : str
+        The base URL for the robota.ua cvdb api.
+    RESUME_URL : str
+        The URL endpoint for accessing resume data on robota.ua.
+    LIMIT_PAGES : int
+        The maximum number of pages to retrieve in a single parsing session"""
+
     PER_PAGE = 20
+    LIMIT_PAGES = 5
     RESUME_URL = "https://employer-api.robota.ua/resume/"
     ALL_RESUMES_URL = "https://employer-api.robota.ua/cvdb/resumes?"
 
@@ -26,6 +46,11 @@ class RobotaUaParser(BaseParser):
         return f"{self.ALL_RESUMES_URL}{filters}"
 
     def build_filter_query(self, resume_filter: ResumeFilter):
+        """Constructs a filter query string based on the given resume filter criteria"""
+        languages = []
+        for k, v in resume_filter.languages.items():
+            for i in v:
+                languages.append(f"Languages={k}-{scoring_lang_level_dict[i]}")
         filters_dict = {
             "Sort": 0,
             "SearchType": "everywhere",
@@ -40,16 +65,17 @@ class RobotaUaParser(BaseParser):
             if resume_filter.education
             else "",
             "KeyWords": f"{'%20'.join(resume_filter.speciality.split(" "))}%20{("%20".join(resume_filter.main_skills))}",
-            "Languages": "&".join(
-                [f"Languages={k}-{v}" for k, v in resume_filter.languages.items()]
-            ),
             "HasPhoto": resume_filter.photo,
         }
         if resume_filter.salary_from:
             filters_dict["Salary.From"] = resume_filter.salary_from
         if resume_filter.salary_to:
             filters_dict["Salary.To"] = resume_filter.salary_to
-        return "&".join(f"{k}={v}" for k, v in filters_dict.items())
+        return (
+            "&".join(f"{k}={v}" for k, v in filters_dict.items())
+            + "&"
+            + "&".join(languages)
+        )
 
     async def get_resumes_page(self, request_link: str):
         """Retrieve a page from the url"""
@@ -78,7 +104,7 @@ class RobotaUaParser(BaseParser):
         res = await self.get_resumes_page(self.url)
         total = res["total"]
         if total:
-            page_count = (total + 19) // 20
+            page_count = (total + self.PER_PAGE - 1) // self.PER_PAGE
             if page_count:
                 logging.info(f"Found {total} resumes|{page_count} pages")
                 return page_count
@@ -106,7 +132,9 @@ class RobotaUaParser(BaseParser):
                 logging.info(f"Sending request {self.url} to robota.ua api...")
                 page_count = await self.get_page_count()
                 results = []
-                for page_num in range(page_count):
+                for page_num in range(
+                    page_count if page_count <= self.LIMIT_PAGES else self.LIMIT_PAGES
+                ):
                     logging.info(f"Parsing {page_num+1} page...")
                     url = f"{self.url}&page={str(page_num)}"
                     resumes_page = await self.get_resumes_page(url)
@@ -226,6 +254,23 @@ class RobotaUaPageParser(BasePageParser):
 
     def parse_resume_data(self, data: dict) -> dict:
         """Parses all the data needed to create a ResumeModel from json and returns a dict"""
+        educations = list()
+        education = 5
+        for edu in data.get("educations", []):
+            educations.append(
+                Education(
+                    name=edu.get("name", ""),
+                    comment=BeautifulSoup(edu["comment"], "html.parser").text,
+                    location=edu.get("location", ""),
+                    speciality=edu.get("speciality", ""),
+                    year_of_graduation=edu.get("yearOfGraduation", 0),
+                )
+            )
+            ed_id = edu["educationId"]
+            if ed_id != 0 and ed_id < education:
+                education = ed_id
+        if education == 5:
+            education = 0
         return {
             "cv_link": f"{self.CANDIDATES_URL}{data["resumeId"]}",
             "last_name": data.get("surname", ""),
@@ -233,7 +278,9 @@ class RobotaUaPageParser(BasePageParser):
             "father_name": data.get("fatherName", ""),
             "age": int(data["age"].split(" ")[0] if data["age"] else 0),
             "speciality": data.get("speciality", ""),
-            "city": str(CityType(data["cityId"])) if data["cityId"] in CityType else "",
+            "city": CityType(data["cityId"]).value
+            if data["cityId"] in CityType
+            else CityType.ALL_UKRAINE.value,
             "schedule": str(ScheduleType(data["scheduleId"])),
             "salary_expectation": int(data.get("salary", 0)),
             "currency": data.get("currencySign", "")
@@ -244,23 +291,21 @@ class RobotaUaPageParser(BasePageParser):
                 [skill.get("description") for skill in data.get("skills", [])]
             ),
             "educations": [
-                {
-                    "name": edu.get("name", ""),
-                    "comment": BeautifulSoup(edu["comment"], "html.parser").text,
-                    "location": edu.get("location", ""),
-                    "speciality": edu.get("speciality", ""),
-                    "yearOfGraduation": edu.get("yearOfGraduation", 0),
-                }
+                Education(
+                    name=edu.get("name", ""),
+                    comment=BeautifulSoup(edu["comment"], "html.parser").text,
+                    location=edu.get("location", ""),
+                    speciality=edu.get("speciality", ""),
+                    year_of_graduation=edu.get("yearOfGraduation", 0),
+                )
                 for edu in data.get("educations", [])
             ],
             "experiences": [
-                {
-                    "position": exp.get("position", ""),
-                    "company": exp.get("company", ""),
-                    "description": BeautifulSoup(
-                        exp["description"], "html.parser"
-                    ).text,
-                    "period": round(
+                Experience(
+                    position=exp.get("position", ""),
+                    company=exp.get("company", ""),
+                    description=BeautifulSoup(exp["description"], "html.parser").text,
+                    period=round(
                         (
                             (
                                 datetime.fromisoformat(exp["endWork"])
@@ -272,15 +317,14 @@ class RobotaUaPageParser(BasePageParser):
                         / 365.25,
                         1,
                     ),
-                }
+                )
                 for exp in data.get("experiences", [])
             ],
-            "languages": [
-                {
-                    str(LangNameType(lang["languageId"])): str(
-                        LangLevelType(lang["languageSkillId"])
-                    )
-                }
+            "languages": {
+                LangNameType(lang["languageId"]).value: LangLevelType(
+                    lang["languageSkillId"]
+                ).value
                 for lang in data.get("languageSkills", [])
-            ],
+            },
+            "education": education,
         }

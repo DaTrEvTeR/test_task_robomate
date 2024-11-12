@@ -7,10 +7,12 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 from typing import Optional, List
 
-from app.helpers.custom_session import CustomSession
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
-from app.helpers.enums import (
+from app.services.custom_session import CustomSession
+from app.services.experience import Experience
+from app.services.education import Education
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
+from app.services.enums import (
     CityType,
     LangNameType,
     LangLevelType,
@@ -20,15 +22,36 @@ from app.parse_work_ua.enums import (
     work_exp_dict,
     work_lang_dict,
     work_lang_level_dict,
+    work_str_lang_dict,
+    work_str_lang_level_dict,
+    work_str_education_dict,
+    work_str_city_dict,
 )
 from app.abc.parser import BaseParser
 from app.abc.page_parser import BasePageParser
 
 
 class WorkUaParser(BaseParser):
+    """A parser for retrieving and processing resume data from the Work.ua website.
+
+    This class uses specified filters and constructs request URLs to fetch resumes,
+    process pages, and extract relevant resume data for further processing.
+
+    Attributes:
+    ----------
+    PER_PAGE : int
+        The number of resumes displayed per page on Work.ua.
+    BASE_URL : str
+        The base URL for the Work.ua website.
+    RESUMES_URL : str
+        The URL endpoint for accessing resume data on Work.ua.
+    LIMIT_PAGES : int
+        The maximum number of pages to retrieve in a single parsing session"""
+
     PER_PAGE = 14
     BASE_URL = "https://www.work.ua"
     RESUMES_URL = "https://www.work.ua/resumes"
+    LIMIT_PAGES = 8
 
     def get_link(self, resume_filter: ResumeFilter) -> str:
         """Returns a formatted string for request to work ua"""
@@ -36,6 +59,7 @@ class WorkUaParser(BaseParser):
         return f"{self.RESUMES_URL}{location}{speciality}/?{filters}"
 
     def build_filter_query(self, resume_filter: ResumeFilter):
+        """Constructs a filter query string based on the given resume filter criteria"""
         if resume_filter.city == 0:
             location = "-"
         else:
@@ -64,9 +88,15 @@ class WorkUaParser(BaseParser):
         experience = work_exp_dict[resume_filter.experience]
         languages = dict()
         for lang, lev in resume_filter.languages.items():
+            lang_lev = list()
+            for i in lev:
+                lang_lev.append(work_lang_level_dict[LangLevelType(i).value])
             lang_name = work_lang_dict[LangNameType(lang).value]
-            lang_lev = work_lang_level_dict[LangLevelType(lev).value]
             languages[lang_name] = lang_lev
+        languages_levels = []
+        for k, v in languages.items():
+            for i in v:
+                languages_levels.append(f"{k}-{i}")
         filters_dict = {
             "notitle": "1",
             "sort": "1",
@@ -75,18 +105,14 @@ class WorkUaParser(BaseParser):
             "agefrom": resume_filter.age_from,
             "ageto": resume_filter.age_to,
             "salaryfrom": salary_from,
-            "salaryto": salary_to,
+            "salaryto": salary_to if salary_to else "0",
             "education": resume_filter.education + 65,
             "experience": experience,
             "language": "+".join(str(k) for k in languages.keys()),
-            "language_level": "+".join(
-                [f"{lang}-{lev}" for lang, lev in languages.items()]
-            ),
+            "language_level": "+".join(languages_levels),
             "photo": int(resume_filter.photo),
         }
-        filters_list = list()
-        for k, v in filters_dict.items():
-            filters_list.append(f"{k}={v}")
+        filters_list = [f"{k}={v}" for k, v in filters_dict.items()]
         filters = "&".join(filters_list)
         return location, speciality, filters
 
@@ -135,13 +161,19 @@ class WorkUaParser(BaseParser):
             raise ValueError("get_page_count: Resumes not found")
 
     async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+        """Class main func to run all processses to get resumes with filter requirement"""
         try:
             async with CustomSession() as session:
                 self.session = session
                 logging.info(f"Sending request {self.url} to work.ua...")
                 page_count = await self.get_page_count()
                 results = []
-                for page_num in range(1, page_count + 1):
+                for page_num in range(
+                    1,
+                    page_count + 1
+                    if page_count <= self.LIMIT_PAGES
+                    else self.LIMIT_PAGES + 1,
+                ):
                     logging.info(f"Parsing {page_num} page...")
                     page_url = f"{self.url}&page={str(page_num)}"
                     resumes_page = await self.get_resumes_page(page_url)
@@ -271,7 +303,14 @@ class WorkUaPageParser(BasePageParser):
         )
 
         city_title = soup.find("dt", string=re.compile(r"Місто(:| проживання:)"))
-        city = city_title.find_next_sibling("dd").text.strip() if city_title else None
+        if city_title:
+            city = city_title.find_next_sibling("dd").text.strip()
+            if city not in CityType:
+                city = CityType.ALL_UKRAINE.value
+            else:
+                city = work_str_city_dict[city]
+        else:
+            city = CityType.ALL_UKRAINE.value
 
         schedule_title = soup.find("dt", string="Зайнятість:")
         schedule = (
@@ -313,24 +352,36 @@ class WorkUaPageParser(BasePageParser):
                     siblings.append([])
                     list_ind += 1
                 siblings[list_ind].append(sibling)
-
         educations = []
-        for ex in siblings:
-            name = ex[0].text
-            comment = ex[2].text if len(ex) == 3 else ""
-            desc_split = ex[1].text.strip().split(", з ")
-            spec = desc_split[0]
-            year_of_graduation = (
-                desc_split[-1].split(" ")[2] if len(desc_split) != 1 else 0
-            )
+        education = 5
+        for ed in siblings:
+            name = ed[0].text
+            comment = ed[2].text if len(ed) == 3 else ""
+            desc_split = ed[1].get_text(" ", strip=True)
+            if " " in desc_split:
+                spec = desc_split.split(", з ")[0]
+                if spec:
+                    last_index = max(spec.rfind("В"), spec.rfind("Н"), spec.rfind("С"))
+                    ed_str = spec[last_index:]
+                    spec = spec[:last_index].strip()
+                year_of_graduation = desc_split.split("по ")[-1][:4]
+            else:
+                spec = ""
+                year_of_graduation = 0
+                ed_str = desc_split
             educations.append(
-                {
-                    "name": name,
-                    "comment": comment,
-                    "speciality": spec.strip(),
-                    "yearOfGraduation": int(year_of_graduation),
-                }
+                Education(
+                    name=name,
+                    comment=comment,
+                    speciality=spec,
+                    year_of_graduation=int(year_of_graduation),
+                )
             )
+            ed_id = work_str_education_dict[ed_str]
+            if ed_id != 0 and ed_id < education:
+                education = ed_id
+        if education == 5:
+            education = 0
         resume_filling += 20 if educations else 0
 
         ex_siblings: list = []
@@ -363,16 +414,16 @@ class WorkUaPageParser(BasePageParser):
                 period = round(int(period_str[0]), 1)
             company = ex[1].text.split("\n")[-1].strip()
             experiences.append(
-                {
-                    "position": position,
-                    "company": company,
-                    "description": description,
-                    "period": period,
-                }
+                Experience(
+                    position=position,
+                    company=company,
+                    description=description,
+                    period=period,
+                )
             )
         resume_filling += 20 if experiences else 0
 
-        languages = []
+        languages = dict()
         if langs := soup.find("h2", string="Знання мов"):
             if (
                 langs.find_next_sibling("ul")
@@ -381,10 +432,10 @@ class WorkUaPageParser(BasePageParser):
                 langs = langs.find_next_sibling("ul").select("li")
                 for lang in langs:
                     t = lang.text.split(" — ")
-                    languages.append({t[0]: t[1]})
+                    languages[work_str_lang_dict[t[0]]] = work_str_lang_level_dict[t[1]]
             else:
                 t = langs.find_next_sibling("p").text.split(" — ")
-                languages.append({t[0]: t[1]})
+                languages[work_str_lang_dict[t[0]]] = work_str_lang_level_dict[t[1]]
         resume_filling += 20 if languages else 0
 
         return {
@@ -403,4 +454,5 @@ class WorkUaPageParser(BasePageParser):
             "educations": educations,
             "experiences": experiences,
             "languages": languages,
+            "education": education,
         }

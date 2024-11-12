@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from app.helpers.resume_filter import ResumeFilter
-from app.helpers.resume_python_object import ResumeModel
+from app.services.resume_filter import ResumeFilter
+from app.services.resume_python_object import ResumeModel
 from app.settings import Settings
 
 

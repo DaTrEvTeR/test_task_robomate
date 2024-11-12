@@ -49,6 +49,8 @@ class LangNameType(CustomEnum):
     FRENCH = 3
     SPANISH = 4
     ITALIAN = 5
+    IRISH = 17
+    LATIN = 23
     AZERBAIJANI = 101
     ALBANIAN = 102
     ARABIC = 103
@@ -111,9 +113,9 @@ class LangLevelType(CustomEnum):
     ELEMENTARY = 1
     LOWER_INTERMEDIATE = 2
     INTERMEDIATE = 3
-    UPPER_INTERMEDIATE = 6
-    ADVANCED = 4
-    FLUENT = 5
+    UPPER_INTERMEDIATE = 4
+    ADVANCED = 5
+    FLUENT = 6
     NATIVE = 7
 
 
@@ -149,4 +151,3 @@ class EducationType(CustomEnum):
     INCOMPLETE_HIGHER = 2
     VOCATIONAL = 3
     SECONDARY = 4
-    MBA = 5

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from app.helpers.enums import (
+from app.services.enums import (
     CityType,
     EducationType,
     ScheduleType,
@@ -20,9 +20,16 @@ class ResumeFilter(BaseModel):
     salary_from: int = Field(default=0, ge=0)
     salary_to: int = Field(default=0, ge=0)
     schedule: int = Field(default=ScheduleType.ANY.value)
-    languages: dict[int, int] = Field(default=dict())
+    languages: dict[int, tuple[int, ...]] = Field(default_factory=dict)
     period: int = Field(default=PeriodType.YEAR.value)
     experience: int = Field(default=ExperienceType.ANY.value)
     photo: bool = Field(default=False)
     # keywords for gaining scores
     keywords: list[str] = Field(default=[])
+
+    @field_validator("languages", mode="before")
+    def validate_lang(cls, languages):
+        validated_languages = {}
+        for lang, level in languages.items():
+            validated_languages[lang] = tuple(range(level, 8))
+        return validated_languages
