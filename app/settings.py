@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     processes_count: int = 4
     process_max_connections: int = 2
 
+    BOT_TOKEN: str
+
     model_config = ConfigDict(
         extra="ignore",
         env_file=env_file if env_file.exists() else None,
