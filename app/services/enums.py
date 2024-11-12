@@ -126,9 +126,12 @@ class CityType(CustomEnum):
     ODESA = 3
     DNIPRO = 4
     VINNYTSIA = 5
+    DONETSK = 6
     ZAPORIZHIA = 9
     IVANO_FRANKIVSK = 10
     KROPYVNYTSKYI = 11
+    KRYM = 12
+    LUHANSK = 13
     LUTSK = 14
     MYKOLAIV = 15
     POLTAVA = 17

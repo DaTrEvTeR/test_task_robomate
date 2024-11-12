@@ -73,7 +73,7 @@ class ResumeEvaluator:
 
     def _evaluate_keywords(self):
         """Evaluates the resume based on keywords specified in the filter.
-        Searches for these keywords in the descriptions of work experiences.
+        Searches for these keywords in the resume text.
 
         Scoring:
             +2 points per keyword match, capped at 15 points total"""
@@ -82,7 +82,9 @@ class ResumeEvaluator:
                 ex.description.lower() for ex in self.resume.experiences
             )
             keyword_matches = sum(
-                1 for keyword in self.resume_filter.keywords if keyword in exp_descs
+                1
+                for keyword in self.resume_filter.keywords
+                if keyword in exp_descs or keyword in self.resume.skills
             )
             self.score += min(keyword_matches * 2, 15)
 

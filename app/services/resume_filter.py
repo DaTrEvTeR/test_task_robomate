@@ -10,7 +10,7 @@ from app.services.enums import (
 
 
 class ResumeFilter(BaseModel):
-    speciality: str
+    speciality: str = Field(default="")
     # main skills for request
     main_skills: list[str] = Field(default=[], max_length=3)
     city: int = Field(default=CityType.ALL_UKRAINE.value)

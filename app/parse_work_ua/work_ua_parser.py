@@ -62,6 +62,8 @@ class WorkUaParser(BaseParser):
         """Constructs a filter query string based on the given resume filter criteria"""
         if resume_filter.city == 0:
             location = "-"
+        elif resume_filter.city == 12:
+            location = "-cr-"
         else:
             location = f"-{CityType(resume_filter.city).name.lower()}-"
 
