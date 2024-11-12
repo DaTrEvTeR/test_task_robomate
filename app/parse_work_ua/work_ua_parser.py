@@ -32,6 +32,22 @@ from app.abc.page_parser import BasePageParser
 
 
 class WorkUaParser(BaseParser):
+    """A parser for retrieving and processing resume data from the Work.ua website.
+
+    This class uses specified filters and constructs request URLs to fetch resumes,
+    process pages, and extract relevant resume data for further processing.
+
+    Attributes:
+    ----------
+    PER_PAGE : int
+        The number of resumes displayed per page on Work.ua.
+    BASE_URL : str
+        The base URL for the Work.ua website.
+    RESUMES_URL : str
+        The URL endpoint for accessing resume data on Work.ua.
+    LIMIT_PAGES : int
+        The maximum number of pages to retrieve in a single parsing session"""
+
     PER_PAGE = 14
     BASE_URL = "https://www.work.ua"
     RESUMES_URL = "https://www.work.ua/resumes"
@@ -43,6 +59,7 @@ class WorkUaParser(BaseParser):
         return f"{self.RESUMES_URL}{location}{speciality}/?{filters}"
 
     def build_filter_query(self, resume_filter: ResumeFilter):
+        """Constructs a filter query string based on the given resume filter criteria"""
         if resume_filter.city == 0:
             location = "-"
         else:
@@ -144,6 +161,7 @@ class WorkUaParser(BaseParser):
             raise ValueError("get_page_count: Resumes not found")
 
     async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+        """Class main func to run all processses to get resumes with filter requirement"""
         try:
             async with CustomSession() as session:
                 self.session = session

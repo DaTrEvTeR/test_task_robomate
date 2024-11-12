@@ -19,6 +19,22 @@ from app.parse_robota_ua.enums import scoring_lang_level_dict
 
 
 class RobotaUaParser(BaseParser):
+    """A parser for retrieving and processing resume data from the robota.ua website.
+
+    This class uses specified filters and constructs request URLs to fetch resumes,
+    process pages, and extract relevant resume data for further processing.
+
+    Attributes:
+    ----------
+    PER_PAGE : int
+        The number of resumes displayed per page on Work.ua.
+    ALL_RESUMES_URL : str
+        The base URL for the robota.ua cvdb api.
+    RESUME_URL : str
+        The URL endpoint for accessing resume data on robota.ua.
+    LIMIT_PAGES : int
+        The maximum number of pages to retrieve in a single parsing session"""
+
     PER_PAGE = 20
     LIMIT_PAGES = 5
     RESUME_URL = "https://employer-api.robota.ua/resume/"
@@ -30,6 +46,7 @@ class RobotaUaParser(BaseParser):
         return f"{self.ALL_RESUMES_URL}{filters}"
 
     def build_filter_query(self, resume_filter: ResumeFilter):
+        """Constructs a filter query string based on the given resume filter criteria"""
         languages = []
         for k, v in resume_filter.languages.items():
             for i in v:
