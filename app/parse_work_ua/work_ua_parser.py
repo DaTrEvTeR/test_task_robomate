@@ -5,7 +5,7 @@ from aiohttp import ClientError
 import asyncio
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
-from typing import Optional, List
+from typing import List
 
 from app.services.custom_session import CustomSession
 from app.services.experience import Experience
@@ -62,6 +62,8 @@ class WorkUaParser(BaseParser):
         """Constructs a filter query string based on the given resume filter criteria"""
         if resume_filter.city == 0:
             location = "-"
+        elif resume_filter.city == 12:
+            location = "-cr-"
         else:
             location = f"-{CityType(resume_filter.city).name.lower()}-"
 
@@ -160,7 +162,7 @@ class WorkUaParser(BaseParser):
         else:
             raise ValueError("get_page_count: Resumes not found")
 
-    async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+    async def run_parser(self) -> List[ResumeModel] | None:
         """Class main func to run all processses to get resumes with filter requirement"""
         try:
             async with CustomSession() as session:
@@ -184,9 +186,9 @@ class WorkUaParser(BaseParser):
                     results.append(
                         self.get_resumes_data_from_urls(resumes_urls=resumes_links)
                     )
-            res = []
+            res: list[ResumeModel] = []
             for url_group in results:
-                res.extend(url_group)
+                res.extend(url_group if url_group else [])
             logging.info(f"Parsing finished\nParsed {len(res)} resumes")
             return res
 
@@ -196,7 +198,7 @@ class WorkUaParser(BaseParser):
 
     def get_resumes_data_from_urls(
         self, resumes_urls: list[str]
-    ) -> list[Optional[ResumeModel]]:
+    ) -> list[ResumeModel] | None:
         """Retrieve product data from a list of URLs using multiple processes.
 
         Parameters
@@ -219,8 +221,8 @@ class WorkUaParser(BaseParser):
 
         res = []
         for url_group in results:
-            res.extend(url_group)
-        return res
+            res.extend(url_group if url_group else [])
+        return res if res else None
 
     def split_urls(self, urls: list[str]):
         """Split a list of URLs into smaller chunks.
@@ -245,7 +247,7 @@ class WorkUaParser(BaseParser):
         )
 
 
-def process_wrapper(args) -> list[Optional[ResumeModel]]:
+def process_wrapper(args) -> list[ResumeModel] | None:
     """Wrapper to run asyncio tasks within a process."""
     urls, settings = args
     page_parser = WorkUaPageParser(urls=urls, settings=settings)
@@ -314,10 +316,20 @@ class WorkUaPageParser(BasePageParser):
 
         schedule_title = soup.find("dt", string="Зайнятість:")
         schedule = (
-            schedule_title.find_next_sibling("dd").text.strip()
-            if schedule_title
-            else ""
+            (
+                schedule_title.find_next_sibling("dd").text.strip()
+                if schedule_title
+                else ""
+            )
+            .replace(".", "")
+            .split(", ")
         )
+        if len(schedule) == 2:
+            schedule_id = 0
+        elif schedule == "Повна зайнятість":
+            schedule_id = 1
+        else:
+            schedule_id = 2
 
         salary_expectation, currency = 0, ""
         if salary_block := soup.select_one(
@@ -446,11 +458,11 @@ class WorkUaPageParser(BasePageParser):
             "age": age,
             "speciality": speciality,
             "city": city,
-            "schedule": schedule,
+            "schedule": schedule_id,
             "salary_expectation": salary_expectation,
             "currency": currency,
             "resume_filling": resume_filling,
-            "skills": skills,
+            "skills": BeautifulSoup(skills, "html.parser").text,
             "educations": educations,
             "experiences": experiences,
             "languages": languages,

@@ -15,12 +15,17 @@ class BasePageParser(ABC):
         self.urls = urls
         self.settings = settings
 
-    async def process_urls(self) -> list[Optional[ResumeModel]]:
+    async def process_urls(self) -> list[ResumeModel] | None:
         """Asynchronously fetch and parse resumes in a given list of URLs."""
         async with CustomSession() as session:
             self.session = session
             tasks = [self.fetch_and_parse(url) for url in self.urls]
-            return list(await asyncio.gather(*tasks))
+            result = list(
+                res
+                for res in await asyncio.gather(*tasks)
+                if isinstance(res, ResumeModel)
+            )
+            return result if result else None
 
     @abstractmethod
     async def fetch_and_parse(self, url: str) -> Optional[ResumeModel]:

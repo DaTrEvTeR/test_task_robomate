@@ -6,12 +6,7 @@ class CustomEnum(Enum):
     the member name in uppercase format with spaces instead of underscores"""
 
     def __str__(self):
-        return self.name.capitalize().replace("_", " ")
-
-    @classmethod
-    def get_by_name(cls, name: str):
-        name_upper = name.upper()
-        return getattr(cls, name_upper, None)
+        return self.name.lower().replace("_", " ")
 
 
 class ScheduleType(CustomEnum):
@@ -111,7 +106,7 @@ class LangNameType(CustomEnum):
 
 class LangLevelType(CustomEnum):
     ELEMENTARY = 1
-    LOWER_INTERMEDIATE = 2
+    PRE_INTERMEDIATE = 2
     INTERMEDIATE = 3
     UPPER_INTERMEDIATE = 4
     ADVANCED = 5
@@ -126,9 +121,12 @@ class CityType(CustomEnum):
     ODESA = 3
     DNIPRO = 4
     VINNYTSIA = 5
+    DONETSK = 6
     ZAPORIZHIA = 9
     IVANO_FRANKIVSK = 10
     KROPYVNYTSKYI = 11
+    KRYM = 12
+    LUHANSK = 13
     LUTSK = 14
     MYKOLAIV = 15
     POLTAVA = 17
