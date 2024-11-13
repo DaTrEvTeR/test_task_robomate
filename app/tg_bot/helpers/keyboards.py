@@ -6,7 +6,9 @@ from app.services.enums import (
     ScheduleType,
     PeriodType,
     ExperienceType,
+    LangLevelType,
 )
+from app.tg_bot.helpers.enums import FilterLangs, SitesIds
 
 filt_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -26,42 +28,49 @@ filt_keyboard = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="Experience", callback_data="experience")],
         [InlineKeyboardButton(text="Photo", callback_data="photo")],
         [InlineKeyboardButton(text="Keywords in experience", callback_data="keywords")],
+        [InlineKeyboardButton(text="Site", callback_data="site")],
     ]
 )
 
 buttons = [
-    InlineKeyboardButton(text=str(city), callback_data=str(city.value))
+    InlineKeyboardButton(
+        text=str(city).title().replace(" ", "-"), callback_data=str(city.value)
+    )
     for city in CityType
 ]
-rows = [buttons[i : i + 2] for i in range(0, len(buttons), 2)]
-locations_kb = InlineKeyboardMarkup(inline_keyboard=rows, row_width=2)
+loc_rows = [buttons[i : i + 2] for i in range(0, len(buttons), 2)]
+locations_kb = InlineKeyboardMarkup(inline_keyboard=loc_rows, row_width=2)
 
-rows = [
+edu_rows = [
     InlineKeyboardButton(text=str(ed), callback_data=str(ed.value))
     for ed in EducationType
 ]
 education_kb = InlineKeyboardMarkup(
-    inline_keyboard=[[row] for row in rows], row_width=1
+    inline_keyboard=[[row] for row in edu_rows], row_width=1
 )
 
-rows = [
+sch_rows = [
     InlineKeyboardButton(text=str(sch), callback_data=str(sch.value))
     for sch in ScheduleType
 ]
-schedule_kb = InlineKeyboardMarkup(inline_keyboard=[[row] for row in rows], row_width=1)
+schedule_kb = InlineKeyboardMarkup(
+    inline_keyboard=[[row] for row in sch_rows], row_width=1
+)
 
-rows = [
+per_rows = [
     InlineKeyboardButton(text=str(per), callback_data=str(per.value))
     for per in PeriodType
 ]
-period_kb = InlineKeyboardMarkup(inline_keyboard=[[row] for row in rows], row_width=1)
+period_kb = InlineKeyboardMarkup(
+    inline_keyboard=[[row] for row in per_rows], row_width=1
+)
 
-rows = [
+exp_rows = [
     InlineKeyboardButton(text=str(ex), callback_data=str(ex.value))
     for ex in ExperienceType
 ]
 expirience_kb = InlineKeyboardMarkup(
-    inline_keyboard=[[row] for row in rows], row_width=1
+    inline_keyboard=[[row] for row in exp_rows], row_width=1
 )
 
 photo_kb = InlineKeyboardMarkup(
@@ -69,4 +78,32 @@ photo_kb = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="require", callback_data="1")],
         [InlineKeyboardButton(text="doesn't matter", callback_data="0")],
     ]
+)
+
+
+lang_rows = [
+    InlineKeyboardButton(text=str(lang), callback_data=str(lang.value))
+    for lang in FilterLangs
+]
+languages_kb = InlineKeyboardMarkup(
+    inline_keyboard=[[row] for row in lang_rows], row_width=1
+)
+
+
+def get_lang_level_kb(lang_id: str) -> InlineKeyboardMarkup:
+    lev_rows = [
+        InlineKeyboardButton(text=str(lev), callback_data=f"{lang_id} {lev.value}")
+        for lev in LangLevelType
+    ]
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[row] for row in lev_rows], row_width=1
+    )
+
+
+site_rows = [
+    InlineKeyboardButton(text=str(site), callback_data=str(site.value))
+    for site in SitesIds
+]
+sites_kb = InlineKeyboardMarkup(
+    inline_keyboard=[[row] for row in site_rows], row_width=1
 )

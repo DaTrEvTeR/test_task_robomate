@@ -13,7 +13,7 @@ class ResumeModel(BaseModel):
     age: int = 0
     speciality: str
     city: int = CityType.ALL_UKRAINE.value
-    schedule: str = ""
+    schedule: int = 0
     salary_expectation: int = 0
     currency: str = ""
     resume_filling: int

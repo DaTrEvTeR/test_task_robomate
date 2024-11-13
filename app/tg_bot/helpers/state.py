@@ -12,7 +12,12 @@ class States(StatesGroup):
     salary = State()
     schedule = State()
     languages = State()
+    lang_level = State()
     period = State()
     experience = State()
     photo = State()
     keywords = State()
+
+    site = State()
+
+    fetching = State()

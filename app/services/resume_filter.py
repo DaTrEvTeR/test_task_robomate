@@ -27,9 +27,20 @@ class ResumeFilter(BaseModel):
     # keywords for gaining scores
     keywords: list[str] = Field(default=[])
 
-    @field_validator("languages", mode="before")
+    @field_validator("languages", mode="after")
+    @classmethod
     def validate_lang(cls, languages):
         validated_languages = {}
         for lang, level in languages.items():
             validated_languages[lang] = tuple(range(level, 8))
         return validated_languages
+
+    def update_language(self, value: tuple[int, int]):
+        """Updates or appends the language in languages with validation."""
+        if isinstance(value, tuple) and len(value) == 2:
+            lang, level = value
+            self.languages[lang] = tuple(range(level, 8))
+        else:
+            raise ValueError(
+                "Invalid format for language. Expected tuple (lang, level)"
+            )

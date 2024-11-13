@@ -1,23 +1,26 @@
 import logging
 
-from typing import Type, Optional
+from typing import Type
 
 from app.abc.parser import BaseParser
 from app.services.resume_filter import ResumeFilter
 from app.services.resume_python_object import ResumeModel
-from app.settings import Settings
+from app.settings import Settings, settings
 
 
 class ParseContext:
     def __init__(
-        self, parser_cls: Type[BaseParser], filter_obj: ResumeFilter, settings: Settings
+        self,
+        parser_cls: Type[BaseParser] | None = None,
+        filter_obj: ResumeFilter = ResumeFilter(),
+        settings: Settings = settings,
     ) -> None:
         self._parser_cls = parser_cls
         self._filter_obj = filter_obj
         self._settings = settings
 
     @property
-    def parser_cls(self) -> Type[BaseParser]:
+    def parser_cls(self) -> Type[BaseParser] | None:
         return self._parser_cls
 
     @parser_cls.setter
@@ -52,11 +55,10 @@ class ParseContext:
         else:
             logging.warning(f"{settings} is invalid settings type")
 
-    async def parse(self) -> list[Optional[ResumeModel]] | None:
+    async def parse(self) -> list[ResumeModel] | None:
         # Create an instance of the parser class
-        if self._parser_cls:
+        if self._parser_cls and self._filter_obj.speciality:
             parser_instance = self._parser_cls(self._filter_obj, self._settings)
             return await parser_instance.run_parser()
         else:
-            logging.error("No parser class assigned")
-            return None
+            raise ValueError("Speciality in filter or parser class is not specified")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List
 
 from app.services.resume_filter import ResumeFilter
 from app.services.resume_python_object import ResumeModel
@@ -36,7 +36,7 @@ class BaseParser(ABC):
         pass
 
     @abstractmethod
-    async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+    async def run_parser(self) -> List[ResumeModel] | None:
         """
         Abstract method for running the parsing process. This method will be
         implemented in subclasses to handle the actual parsing logic.

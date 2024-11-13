@@ -10,6 +10,14 @@ logging.basicConfig(
 )
 
 
+async def wrapper():
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+
 if __name__ == "__main__":
-    dp.include_router(base_router)
-    asyncio.run(dp.start_polling(bot))
+    try:
+        dp.include_router(base_router)
+        asyncio.run(wrapper())
+    except Exception as e:
+        logging.error(f"ROOT ERROR: {e}")

@@ -28,7 +28,7 @@ work_exp_dict = {
 
 work_lang_level_dict = {
     LangLevelType.ELEMENTARY.value: 83,
-    LangLevelType.LOWER_INTERMEDIATE.value: 83,
+    LangLevelType.PRE_INTERMEDIATE.value: 83,
     LangLevelType.INTERMEDIATE.value: 84,
     LangLevelType.UPPER_INTERMEDIATE.value: 22835,
     LangLevelType.ADVANCED.value: 85,
@@ -97,7 +97,7 @@ work_str_lang_dict = {
 }
 
 work_str_lang_level_dict = {
-    "початковий": LangLevelType.LOWER_INTERMEDIATE.value,
+    "початковий": LangLevelType.PRE_INTERMEDIATE.value,
     "середній": LangLevelType.INTERMEDIATE.value,
     "вище середнього": LangLevelType.UPPER_INTERMEDIATE.value,
     "просунутий": LangLevelType.ADVANCED.value,

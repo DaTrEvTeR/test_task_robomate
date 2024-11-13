@@ -114,7 +114,7 @@ class RobotaUaParser(BaseParser):
         else:
             raise ValueError("get_page_count: Resumes not found")
 
-    async def run_parser(self) -> List[Optional[ResumeModel]] | None:
+    async def run_parser(self) -> List[ResumeModel] | None:
         """Asynchronously retrieves and parses resumes from the Robota.ua API.
 
         This method first determines the total number of pages to parse, then iterates over each page
@@ -146,9 +146,9 @@ class RobotaUaParser(BaseParser):
                     results.append(
                         self.get_resumes_data_from_urls(resumes_urls=resumes_links)
                     )
-            res = []
+            res: List[ResumeModel] = []
             for url_group in results:
-                res.extend(url_group)
+                res.extend(url_group if url_group else [])
             logging.info(f"Parsing finished\nParsed {len(res)} resumes")
             return res
         except Exception as e:
@@ -157,7 +157,7 @@ class RobotaUaParser(BaseParser):
 
     def get_resumes_data_from_urls(
         self, resumes_urls: list[str]
-    ) -> list[Optional[ResumeModel]]:
+    ) -> list[ResumeModel] | None:
         """Retrieve product data from a list of URLs using multiple processes.
 
         Parameters
@@ -178,10 +178,10 @@ class RobotaUaParser(BaseParser):
                 [(url_group, self.settings) for url_group in url_groups],
             )
 
-        res = []
+        res: List[ResumeModel] = []
         for url_group in results:
-            res.extend(url_group)
-        return res
+            res.extend(url_group if url_group else [])
+        return res if res else None
 
     def split_urls(self, urls: list[str]):
         """Split a list of URLs into smaller chunks.
@@ -206,7 +206,7 @@ class RobotaUaParser(BaseParser):
         )
 
 
-def process_wrapper(args) -> list[Optional[ResumeModel]]:
+def process_wrapper(args) -> list[ResumeModel] | None:
     """Wrapper to run asyncio tasks within a process."""
     urls, settings = args
     page_parser = RobotaUaPageParser(urls=urls, settings=settings)
@@ -271,6 +271,13 @@ class RobotaUaPageParser(BasePageParser):
                 education = ed_id
         if education == 5:
             education = 0
+        skills = []
+        for skill in data.get("skills", []):
+            skill_desc = skill.get("description", "")
+            if skill_desc:
+                skills.append(BeautifulSoup(skill_desc, "lxml").text)
+        skills_str = ", ".join(skills).lower()
+
         return {
             "cv_link": f"{self.CANDIDATES_URL}{data["resumeId"]}",
             "last_name": data.get("surname", ""),
@@ -281,15 +288,13 @@ class RobotaUaPageParser(BasePageParser):
             "city": CityType(data["cityId"]).value
             if data["cityId"] in CityType
             else CityType.ALL_UKRAINE.value,
-            "schedule": str(ScheduleType(data["scheduleId"])),
+            "schedule": ScheduleType(data["scheduleId"]),
             "salary_expectation": int(data.get("salary", 0)),
             "currency": data.get("currencySign", "")
             if int(data.get("salary", 0)) != 0
             else "",
             "resume_filling": data.get("fillingPercentage", 0),
-            "skills": ", ".join(
-                [skill.get("description") for skill in data.get("skills", [])]
-            ),
+            "skills": skills_str,
             "educations": [
                 Education(
                     name=edu.get("name", ""),
