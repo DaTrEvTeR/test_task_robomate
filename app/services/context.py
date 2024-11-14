@@ -12,12 +12,12 @@ class ParseContext:
     def __init__(
         self,
         parser_cls: Type[BaseParser] | None = None,
-        filter_obj: ResumeFilter = ResumeFilter(),
-        settings: Settings = settings,
+        filter_obj: ResumeFilter | None = None,
+        config: Settings | None = None,
     ) -> None:
         self._parser_cls = parser_cls
-        self._filter_obj = filter_obj
-        self._settings = settings
+        self._filter_obj = filter_obj if filter_obj else ResumeFilter()
+        self._settings = config if config else settings
 
     @property
     def parser_cls(self) -> Type[BaseParser] | None:
