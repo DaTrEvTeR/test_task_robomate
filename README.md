@@ -28,8 +28,13 @@ python main.py
 
 The project uses the following dependencies:
 
-**Python**: 3.12 at least
-**aiohttp**: Asynchronous requests to the website
+**Python**: 3.12 at least  
+**aiohttp**: Asynchronous requests to the website  
+**pydantic**: Model validations  
+**pydantic-settings**: Project settings  
+**bs4**: Data parsing  
+**lxml**: Parser for bs4  
+**aiogram**: Telegram bot    
 
 ## author
 
