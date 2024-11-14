@@ -75,7 +75,7 @@ async def handle_search(msg: Message, state: FSMContext) -> None:
             )
 
     except Exception as e:
-        if not context.parser_cls or not context.filter_obj.speciality:
+        if not (context.parser_cls or context.filter_obj.speciality):
             to_delete = await msg.answer("Input speciality and site first, please")
         else:
             logging.error(e)
@@ -119,7 +119,7 @@ async def handle_pull(msg: Message, state: FSMContext) -> None:
 @base_router.callback_query(F.data == "speciality")
 async def speciality(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.message.edit_text(
-        text="Enter speciality in format <blockquote>\nspeciality name\n</blockquote>(other spec symbols are fobidden)"
+        text="Enter speciality in format <blockquote>\nspeciality name\n</blockquote>"
     )
     await state.set_state(States.speciality)
     await cb.answer()
@@ -127,9 +127,6 @@ async def speciality(cb: CallbackQuery, state: FSMContext) -> None:
 
 @base_router.message(States.speciality)
 async def set_speciality(msg: Message, state: FSMContext) -> None:
-    if not re.match(r"^[a-zA-Zа-яА-ЯїЇіІєЄ\d '`]+$", msg.text.lower()):
-        return await delete_incorrect_with_timeout(msg)
-
     data = await state.get_data()
     context: ParseContext = data.get(StateStr.CONTEXT)
 
@@ -142,7 +139,7 @@ async def set_speciality(msg: Message, state: FSMContext) -> None:
 @base_router.callback_query(F.data == "skills")
 async def skills(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.message.edit_text(
-        text="Enter up to 3 main skills that candidate must have in format <blockquote>\nSkill, another skill...</blockquote>(other spec symbols are fobidden)"
+        text="Enter up to 3 main skills that candidate must have in format <blockquote>\nSkill, another skill...</blockquote>"
     )
     await state.set_state(States.main_skills)
     await cb.answer()
@@ -150,9 +147,8 @@ async def skills(cb: CallbackQuery, state: FSMContext) -> None:
 
 @base_router.message(States.main_skills)
 async def set_skills(msg: Message, state: FSMContext) -> None:
-    if not re.match(r"^[a-zA-Zа-яА-ЯєЄїЇіІ\d ,'`]+$", msg.text.lower()):
-        return await delete_incorrect_with_timeout(msg)
     skills_list = msg.text.lower().split(", ")
+    skills_list = [skill.replace(" ", "_") for skill in skills_list]
     if len(skills_list) > 3:
         return await delete_incorrect_with_timeout(msg)
     data = await state.get_data()
@@ -219,18 +215,21 @@ async def set_age(msg: Message, state: FSMContext) -> None:
         return await delete_incorrect_with_timeout(msg)
     age_list = msg.text.lower().split(", ")
     try:
-        age_list[0], age_list[1] = int(age_list[0]), int(age_list[1])
+        age_from = int(age_list[0])
+        age_to = int(age_list[1])
     except Exception:
         return await delete_incorrect_with_timeout(msg)
-    condition = any((len(age_list) > 2, 100 < age_list[0] < 0, 100 < age_list[1] < 0))
+    condition = any(
+        (len(age_list) > 2, not (100 >= age_from >= 0), not (100 >= age_to >= 0))
+    )
     if condition:
         return await delete_incorrect_with_timeout(msg)
 
     data = await state.get_data()
     context: ParseContext = data.get(StateStr.CONTEXT)
 
-    context.filter_obj.age_from = int(age_list[0])
-    context.filter_obj.age_to = int(age_list[1])
+    context.filter_obj.age_from = age_from
+    context.filter_obj.age_to = age_to
 
     await save_data_and_update_filt_msg(state, data, context)
     await msg.delete()
@@ -251,18 +250,19 @@ async def set_salary(msg: Message, state: FSMContext) -> None:
         return await delete_incorrect_with_timeout(msg)
     salary_list = msg.text.lower().split(", ")
     try:
-        salary_list[0], salary_list[1] = int(salary_list[0]), int(salary_list[1])
+        salary_from = int(salary_list[0])
+        salary_to = int(salary_list[1])
     except Exception:
         return await delete_incorrect_with_timeout(msg)
-    condition = any((len(salary_list) > 2, salary_list[0] < 0, salary_list[1] < 0))
+    condition = any((len(salary_list) > 2, salary_to < 0, salary_to < 0))
     if condition:
         return await delete_incorrect_with_timeout(msg)
 
     data = await state.get_data()
     context: ParseContext = data.get(StateStr.CONTEXT)
 
-    context.filter_obj.salary_from = int(salary_list[0])
-    context.filter_obj.salary_to = int(salary_list[1])
+    context.filter_obj.salary_from = salary_from
+    context.filter_obj.salary_to = salary_to
 
     await save_data_and_update_filt_msg(state, data, context)
     await msg.delete()
@@ -381,7 +381,7 @@ async def set_photo(cb: CallbackQuery, state: FSMContext) -> None:
 @base_router.callback_query(F.data == "keywords")
 async def keywords(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.message.edit_text(
-        text="Enter keywords that will be considered a plus if the candidate has them, in the format <blockquote>\nKeyword, another keyword\n</blockquote> (special symbols are forbiden)"
+        text="Enter keywords that will be considered a plus if the candidate has them, in the format <blockquote>\nKeyword, another keyword\n</blockquote>"
     )
     await state.set_state(States.keywords)
     await cb.answer()
@@ -389,8 +389,6 @@ async def keywords(cb: CallbackQuery, state: FSMContext) -> None:
 
 @base_router.message(States.keywords)
 async def set_keywords(msg: Message, state: FSMContext) -> None:
-    if not re.match(r"^[a-zA-Zа-яА-ЯєЄїЇіІ\d ,`']+$", msg.text.lower()):
-        return await delete_incorrect_with_timeout(msg)
     keywords_list = msg.text.lower().split(", ")
 
     data = await state.get_data()

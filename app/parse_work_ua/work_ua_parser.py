@@ -67,7 +67,7 @@ class WorkUaParser(BaseParser):
         else:
             location = f"-{CityType(resume_filter.city).name.lower()}-"
 
-        speciality = f"{'+'.join(resume_filter.speciality.split(" "))}+{("+".join(resume_filter.main_skills))}"
+        speciality = f"{'+'.join(resume_filter.speciality.split('_'))}+{'+'.join('+'.join(skill.split('_')) for skill in resume_filter.main_skills)}"
         period = (
             resume_filter.period - 1
             if resume_filter.period in (3, 4)
@@ -84,8 +84,11 @@ class WorkUaParser(BaseParser):
         salary_from = work_salary_dict[
             max(key for key in work_salary_dict if key <= resume_filter.salary_from)
         ]
+        max_salary_keys = [
+            key for key in work_salary_dict if key >= resume_filter.salary_to
+        ]
         salary_to = work_salary_dict[
-            min(key for key in work_salary_dict if key >= resume_filter.salary_to)
+            min(max_salary_keys if max_salary_keys else (0, 1))
         ]
         experience = work_exp_dict[resume_filter.experience]
         languages = dict()
